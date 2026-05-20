@@ -32,6 +32,14 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
+
+# claude
+.claude/
+
+# claude agent files (moved to project root, outside repo)
+/AGENTS.md
+/CLAUDE.md
 
 # vercel
 .vercel

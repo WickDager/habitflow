@@ -1,26 +1,360 @@
 @import "tailwindcss";
 
+/* ── Telegram Theme Variables ── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --tg-bg: var(--tg-theme-bg-color, #ffffff);
+  --tg-surface: var(--tg-theme-secondary-bg-color, #f0f0f0);
+  --tg-text: var(--tg-theme-text-color, #000000);
+  --tg-hint: var(--tg-theme-hint-color, #707579);
+  --tg-link: var(--tg-theme-link-color, #2678b6);
+  --tg-button: var(--tg-theme-button-color, #2678b6);
+  --tg-btn-text: var(--tg-theme-button-text-color, #ffffff);
+  --tg-accent: var(--tg-theme-accent-text-color, #2678b6);
+
+  --color-bg: var(--tg-bg);
+  --color-surface: var(--tg-surface);
+  --color-text: var(--tg-text);
+  --color-muted: var(--tg-hint);
+  --color-primary: var(--tg-button);
+  --color-primary-text: var(--tg-btn-text);
+
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 40px;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+
+  --font-body: -apple-system, "SF Pro Text", sans-serif;
+  --font-mono: "SF Mono", "Fira Code", monospace;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* ── Base ── */
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  overflow-y: auto;
+  -webkit-font-smoothing: antialiased;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* ── Skeleton Shimmer ── */
+@keyframes shimmer {
+  from {
+    background-position: -200% 0;
+  }
+  to {
+    background-position: 200% 0;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+.skeleton-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md) 0;
+  animation: shimmer 1.4s infinite;
+  background: linear-gradient(
+    90deg,
+    var(--color-surface) 25%,
+    rgba(128, 128, 128, 0.15) 50%,
+    var(--color-surface) 75%
+  );
+  background-size: 200% 100%;
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-sm);
+}
+
+/* ── Today View ── */
+.today-view {
+  padding: var(--space-md);
+}
+
+.offline-banner {
+  background: var(--tg-hint);
+  color: var(--color-bg);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  text-align: center;
+  margin-bottom: var(--space-md);
+}
+
+.habit-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.habit-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-sm) 0;
+  border-bottom: 1px solid var(--color-surface);
+  transition: opacity 0.2s ease-out;
+}
+
+.habit-icon {
+  font-size: 1.5rem;
+}
+
+.habit-name {
+  flex: 1;
+  font-size: 1rem;
+  transition: text-decoration 0.2s, opacity 0.2s;
+}
+
+.habit-name.completed {
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+
+.habit-checkbox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--color-muted);
+  background: transparent;
+  font-size: 1.2rem;
+  color: var(--color-primary-text);
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.habit-checkbox.checked {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.habit-checkbox:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ── Mood Picker ── */
+.mood-picker {
+  margin-top: var(--space-lg);
+}
+
+.mood-label {
+  display: block;
+  font-size: 0.9rem;
+  margin-bottom: var(--space-sm);
+  color: var(--color-muted);
+}
+
+.mood-options {
+  display: flex;
+  gap: var(--space-md);
+}
+
+.mood-btn {
+  min-width: 56px;
+  min-height: 56px;
+  border-radius: var(--radius-md);
+  border: 2px solid transparent;
+  background: var(--color-surface);
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s;
+}
+
+.mood-btn.selected {
+  transform: scale(1.15);
+  border-color: var(--color-primary);
+}
+
+.mood-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ── Save Button ── */
+.save-btn {
+  width: 100%;
+  min-height: 44px;
+  margin-top: var(--space-lg);
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.save-btn:disabled {
+  opacity: 0.6;
+}
+
+/* ── Celebration ── */
+.celebration {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 600;
+  min-height: 200px;
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ── Error State ── */
+.error-state {
+  padding: var(--space-lg);
+  text-align: center;
+  color: var(--color-muted);
+}
+
+/* ── Stats View ── */
+.stats-view {
+  padding: var(--space-md);
+}
+
+.streak-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: var(--space-sm);
+  margin-bottom: var(--space-lg);
+}
+
+.streak-card {
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  text-align: center;
+}
+
+.streak-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  font-size: 1.4rem;
+}
+
+.streak-icon {
+  font-size: 1.2rem;
+}
+
+.streak-unit {
+  font-size: 0.8rem;
+  color: var(--color-muted);
+}
+
+.mood-section,
+.weekly-section {
+  margin-bottom: var(--space-lg);
+}
+
+.mood-section h3,
+.weekly-section h3 {
+  font-size: 0.9rem;
+  margin-bottom: var(--space-sm);
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.progress-bar {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--color-surface);
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  background: var(--color-primary);
+  transition: width 0.6s ease-out;
+}
+
+.progress-label {
+  font-size: 0.85rem;
+  margin-top: var(--space-xs);
+  color: var(--color-muted);
+}
+
+/* ── Tab Bar ── */
+.tab-bar {
+  display: flex;
+  border-bottom: 1px solid var(--color-surface);
+}
+
+.tab-btn {
+  flex: 1;
+  min-height: 44px;
+  background: transparent;
+  border: none;
+  color: var(--color-muted);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  border-bottom: 2px solid transparent;
+}
+
+.tab-btn.active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+/* ── Language Switcher ── */
+.lang-switcher {
+  display: flex;
+  gap: 0;
+  margin-right: var(--space-sm);
+  align-self: center;
+}
+
+.lang-btn {
+  min-height: 32px;
+  min-width: 40px;
+  padding: 2px 8px;
+  background: transparent;
+  border: 1px solid var(--color-muted);
+  color: var(--color-muted);
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  letter-spacing: 0.03em;
+}
+
+.lang-btn:first-child {
+  border-radius: 4px 0 0 4px;
+}
+
+.lang-btn:last-child {
+  border-radius: 0 4px 4px 0;
+  border-left: none;
+}
+
+.lang-btn.active {
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+  border-color: var(--color-primary);
+}
+
+/* ── Safe Area ── */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0);
 }
