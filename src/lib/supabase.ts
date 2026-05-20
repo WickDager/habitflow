@@ -3,7 +3,6 @@ import { createClient } from "@supabase/supabase-js";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let browserClientInstance: ReturnType<typeof createClient<any>> | null = null;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function browserClient() {
   if (browserClientInstance) return browserClientInstance;
   browserClientInstance = createClient(

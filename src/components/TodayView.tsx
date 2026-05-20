@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import confetti from "canvas-confetti";
 import { apiFetch } from "@/lib/apiFetch";
@@ -88,7 +88,7 @@ export function TodayView() {
     [habits]
   );
 
-  const safeHabits = habits ?? [];
+  const safeHabits = useMemo(() => habits ?? [], [habits]);
   const allCompleted =
     safeHabits.length > 0 && safeHabits.every((h) => isCompleted(h.id));
 
@@ -142,12 +142,13 @@ export function TodayView() {
         await savePendingCheckins(pending);
       }
     },
-    [habits, isCompleted, mutate, offline, today]
+    [isCompleted, mutate, offline, safeHabits, today]
   );
 
   useEffect(() => {
     if (allCompleted && habits && habits.length > 0) {
       haptics.success();
+      /* eslint-disable-next-line react-hooks/set-state-in-effect */
       setShowCelebration(true);
       confetti({
         particleCount: 80,

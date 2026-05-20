@@ -33,20 +33,8 @@ function applyTheme() {
 }
 
 export function TelegramProvider({ children }: { children: ReactNode }) {
-  const [value, setValue] = useState<TelegramContextValue>({
-    user: null,
-    initData: "",
-    isReady: false,
-  });
-
-  useEffect(() => {
+  const [value] = useState<TelegramContextValue>(() => {
     if (TG?.WebApp) {
-      TG.WebApp.expand();
-      applyTheme();
-      TG.WebApp.onEvent("themeChanged", applyTheme);
-
-      TG.WebApp.ready();
-
       const initData = TG.WebApp.initData;
       let user: TelegramContextValue["user"] = null;
       const raw = TG.WebApp.initDataUnsafe?.user;
@@ -57,15 +45,22 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
           username: raw.username,
         };
       }
+      return { user, initData, isReady: true };
+    }
+    // Dev mock
+    return {
+      user: { id: 12345, first_name: "Dev", username: "devuser" },
+      initData: "mock_init_data",
+      isReady: true,
+    };
+  });
 
-      setValue({ user, initData, isReady: true });
-    } else {
-      // Dev mock
-      setValue({
-        user: { id: 12345, first_name: "Dev", username: "devuser" },
-        initData: "mock_init_data",
-        isReady: true,
-      });
+  useEffect(() => {
+    if (TG?.WebApp) {
+      TG.WebApp.expand();
+      applyTheme();
+      TG.WebApp.onEvent("themeChanged", applyTheme);
+      TG.WebApp.ready();
     }
   }, []);
 
