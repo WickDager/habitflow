@@ -40,7 +40,9 @@ export function TodayView() {
   const { t } = useLanguage();
   const [mood, setMood] = useState<Mood | null>(null);
   const [saving, setSaving] = useState(false);
-  const [offline, setOffline] = useState(!navigator.onLine);
+  const [offline, setOffline] = useState(
+    typeof navigator !== "undefined" ? !navigator.onLine : false
+  );
   const [showCelebration, setShowCelebration] = useState(false);
 
   const today = new Date().toISOString().slice(0, 10);
