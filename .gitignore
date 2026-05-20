@@ -41,6 +41,9 @@ yarn-error.log*
 /AGENTS.md
 /CLAUDE.md
 
+# supabase migration (one-time setup, outside repo)
+/supabase/migration.sql
+
 # vercel
 .vercel
 
