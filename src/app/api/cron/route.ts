@@ -19,17 +19,11 @@ export async function GET(request: Request) {
   if (!users || users.length === 0)
     return Response.json({ reminded: 0 });
 
-  const localHour = new Date().getUTCHours();
-  const eligible = users.filter((u) => u.reminder_hour === localHour);
-
-  if (eligible.length === 0)
-    return Response.json({ reminded: 0 });
-
   const today = new Date().toISOString().slice(0, 10);
 
   let reminded = 0;
-  for (let i = 0; i < eligible.length; i++) {
-    const u = eligible[i];
+  for (let i = 0; i < users.length; i++) {
+    const u = users[i];
 
     const { data: checkins } = await sb
       .from("checkins")
