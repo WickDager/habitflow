@@ -1,5 +1,6 @@
 import { validateInitData, type TelegramUser } from "./validateInitData";
 import { ratelimit } from "./rateLimit";
+import { serverClient } from "./supabase";
 
 export async function withAuth(
   request: Request,
@@ -14,13 +15,25 @@ export async function withAuth(
     if (!botToken)
       return Response.json({ error: "SERVER_CONFIG_ERROR" }, { status: 500 });
 
-    const user = validateInitData(initData, botToken);
+    const telegramUser = validateInitData(initData, botToken);
 
-    const { success } = await ratelimit.limit(user.id.toString());
+    // Auto-register user on first API call from Mini App
+    const sb = serverClient();
+    await sb.from("users").upsert(
+      {
+        telegram_id: telegramUser.id,
+        first_name: telegramUser.first_name,
+        username: telegramUser.username,
+        language_code: telegramUser.language_code,
+      },
+      { onConflict: "telegram_id" }
+    );
+
+    const { success } = await ratelimit.limit(telegramUser.id.toString());
     if (!success)
       return Response.json({ error: "RATE_LIMITED" }, { status: 429 });
 
-    return handler(request, user);
+    return handler(request, telegramUser);
   } catch (err) {
     if (err instanceof Error && err.message === "INVALID_INIT_DATA")
       return Response.json({ error: "UNAUTHORIZED" }, { status: 401 });
