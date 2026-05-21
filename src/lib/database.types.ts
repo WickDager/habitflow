@@ -49,6 +49,7 @@ export interface Database {
           reminder_hour?: number;
           created_at?: string;
         };
+        Relationships: [];
       };
       habits: {
         Row: {
@@ -78,6 +79,7 @@ export interface Database {
           archived_at?: string | null;
           created_at?: string;
         };
+        Relationships: [];
       };
       checkins: {
         Row: {
@@ -110,6 +112,7 @@ export interface Database {
           notes?: string | null;
           created_at?: string;
         };
+        Relationships: [];
       };
       habit_streaks: {
         Row: {
@@ -130,10 +133,10 @@ export interface Database {
           total_completions?: number;
           last_completed?: string;
         };
+        Relationships: [];
       };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
-    Enums: Record<string, never>;
   };
 }
