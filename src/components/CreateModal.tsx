@@ -31,12 +31,6 @@ export function CreateModal({ open, onClose }: CreateModalProps) {
   useEffect(() => {
     if (open) {
       haptics.select();
-      setStep(null);
-      setName("");
-      setIcon("🏃");
-      setTitle("");
-      setDueDate("");
-      setError("");
     }
   }, [open]);
 

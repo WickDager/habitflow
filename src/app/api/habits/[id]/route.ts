@@ -1,9 +1,11 @@
-import { withAuth } from "@/lib/withAuth";
+import { withAuth, type AuthenticatedContext } from "@/lib/withAuth";
 import { authenticatedClient } from "@/lib/supabase";
 import { HabitSchema } from "@/lib/schemas";
 
-export const PATCH = withAuth(async (req, ctx) => {
-  const { id } = await (ctx as any).params as { id: string };
+type RouteParams = { params: Promise<{ id: string }> };
+
+export const PATCH = withAuth(async (req, ctx: AuthenticatedContext) => {
+  const { id } = await (ctx.params as RouteParams["params"]);
   const body = await req.json();
   const parsed = HabitSchema.partial().safeParse(body);
   if (!parsed.success)
@@ -23,8 +25,8 @@ export const PATCH = withAuth(async (req, ctx) => {
   return Response.json(data);
 });
 
-export const DELETE = withAuth(async (req, ctx) => {
-  const { id } = await (ctx as any).params as { id: string };
+export const DELETE = withAuth(async (req, ctx: AuthenticatedContext) => {
+  const { id } = await (ctx.params as RouteParams["params"]);
   const sb = authenticatedClient(ctx.user.supabase_token);
 
   const { error } = await sb

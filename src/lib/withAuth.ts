@@ -5,7 +5,7 @@ import jwt from "jsonwebtoken";
 import { ratelimit } from "./rateLimit";
 
 export type AuthenticatedContext = {
-  params: any;
+  params: unknown;
   user: {
     internal_uuid: string;
     telegram_id: number;
@@ -30,29 +30,33 @@ function isMockAuth(initData: string): boolean {
 }
 
 export function withAuth(handler: Handler) {
-  const jwtSecret = process.env.SUPABASE_JWT_SECRET;
-  if (!jwtSecret) {
-    throw new Error(
-      "SUPABASE_JWT_SECRET is not set. Add it from Supabase dashboard > Project Settings > API > JWT Secret."
-    );
-  }
+  return async (req: Request, ctx: { params: unknown }) => {
+    const jwtSecret = process.env.SUPABASE_JWT_SECRET;
+    if (!jwtSecret) {
+      return NextResponse.json(
+        { error: "SUPABASE_JWT_SECRET is not set" },
+        { status: 500 },
+      );
+    }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  if (!supabaseUrl) {
-    throw new Error("NEXT_PUBLIC_SUPABASE_URL is not set.");
-  }
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    if (!supabaseUrl) {
+      return NextResponse.json(
+        { error: "NEXT_PUBLIC_SUPABASE_URL is not set" },
+        { status: 500 },
+      );
+    }
 
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!serviceRoleKey) {
-    throw new Error("SUPABASE_SERVICE_ROLE_KEY is not set.");
-  }
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!serviceRoleKey) {
+      return NextResponse.json(
+        { error: "SUPABASE_SERVICE_ROLE_KEY is not set" },
+        { status: 500 },
+      );
+    }
 
-  const botToken = process.env.TELEGRAM_BOT_TOKEN;
-  if (!botToken && !isDev()) {
-    throw new Error("TELEGRAM_BOT_TOKEN is not set.");
-  }
+    const botToken = process.env.TELEGRAM_BOT_TOKEN;
 
-  return async (req: Request, ctx: any) => {
     try {
       const initData = req.headers.get("x-telegram-init-data");
       if (!initData)
@@ -61,7 +65,12 @@ export function withAuth(handler: Handler) {
           { status: 401 },
         );
 
-      let telegramUser;
+      let telegramUser: {
+        id: number;
+        first_name: string;
+        username?: string;
+        language_code?: string;
+      };
 
       if (isMockAuth(initData)) {
         telegramUser = {
@@ -96,7 +105,7 @@ export function withAuth(handler: Handler) {
           {
             telegram_id: telegramUser.id,
             first_name: telegramUser.first_name,
-            username: (telegramUser as any).username,
+            username: telegramUser.username,
             language_code: telegramUser.language_code || "en",
           },
           { onConflict: "telegram_id" },
@@ -118,14 +127,14 @@ export function withAuth(handler: Handler) {
       );
 
       return await handler(req, {
-        ...ctx,
+        params: ctx.params,
         user: {
           internal_uuid: dbUser.id,
           telegram_id: telegramUser.id,
           supabase_token: customJwt,
         },
       });
-    } catch (error) {
+    } catch {
       return NextResponse.json(
         { error: "Internal server error" },
         { status: 500 },

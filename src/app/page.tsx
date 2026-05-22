@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { TodayView } from "@/components/TodayView";
 import { TasksView } from "@/components/TasksView";
 import { StatsView } from "@/components/StatsView";
@@ -16,17 +16,11 @@ export default function Home() {
   const [modalOpen, setModalOpen] = useState(false);
   const { t } = useLanguage();
 
-  const [notInTelegram, setNotInTelegram] = useState(false);
-
-  useEffect(() => {
-    if (
-      typeof window !== "undefined" &&
-      !window.Telegram?.WebApp &&
-      process.env.NODE_ENV !== "development"
-    ) {
-      setNotInTelegram(true);
-    }
-  }, []);
+  const [notInTelegram] = useState(() =>
+    typeof window !== "undefined" &&
+    !window.Telegram?.WebApp &&
+    process.env.NODE_ENV !== "development"
+  );
 
   if (notInTelegram) {
     return (
@@ -76,7 +70,7 @@ export default function Home() {
       )}
 
       <FAB onClick={() => setModalOpen(true)} label={t("newHabit")} />
-      <CreateModal open={modalOpen} onClose={() => setModalOpen(false)} />
+      <CreateModal key={modalOpen ? "1" : "0"} open={modalOpen} onClose={() => setModalOpen(false)} />
     </div>
   );
 }
