@@ -16,6 +16,8 @@ type Handler = (
   ctx: AuthenticatedContext,
 ) => Promise<Response>;
 
+type NextRouteContext = { params: Promise<unknown> };
+
 function isDev(): boolean {
   return process.env.NODE_ENV === "development";
 }
@@ -28,7 +30,7 @@ function isMockAuth(initData: string): boolean {
 }
 
 export function withAuth(handler: Handler) {
-  return async (req: Request, ctx: { params: unknown }) => {
+  return async (req: Request, ctx: NextRouteContext) => {
     const jwtSecret = process.env.SUPABASE_JWT_SECRET;
     if (!jwtSecret) {
       return NextResponse.json(
