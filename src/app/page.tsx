@@ -7,6 +7,7 @@ import { StatsView } from "@/components/StatsView";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { FAB } from "@/components/FAB";
 import { CreateModal } from "@/components/CreateModal";
+import { useTelegram } from "@/components/TelegramProvider";
 import { useLanguage } from "@/lib/i18n";
 
 type Tab = "today" | "tasks" | "stats";
@@ -15,20 +16,21 @@ export default function Home() {
   const [tab, setTab] = useState<Tab>("today");
   const [modalOpen, setModalOpen] = useState(false);
   const { t } = useLanguage();
+  const { isReady } = useTelegram();
 
-  const [notInTelegram] = useState(() =>
-    typeof window !== "undefined" &&
-    !window.Telegram?.WebApp &&
-    process.env.NODE_ENV !== "development"
-  );
+  const isDev = process.env.NODE_ENV === "development";
 
-  if (notInTelegram) {
+  if (!isReady && !isDev) {
     return (
       <div className="error-state" style={{ paddingTop: "40vh" }}>
         <h1 style={{ fontSize: "1.5rem", marginBottom: 12 }}>HabitFlow</h1>
         <p>Please open HabitFlow directly within Telegram.</p>
       </div>
     );
+  }
+
+  if (!isReady) {
+    return null;
   }
 
   return (

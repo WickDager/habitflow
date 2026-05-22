@@ -20,10 +20,36 @@ const TelegramContext = createContext<TelegramContextValue>({
   isReady: false,
 });
 
-const TG = typeof window !== "undefined" ? window.Telegram : null;
+function getTelegramValue(): TelegramContextValue {
+  const TG = window.Telegram;
+  if (TG?.WebApp) {
+    const initData = TG.WebApp.initData;
+    let user: TelegramContextValue["user"] = null;
+    const raw = TG.WebApp.initDataUnsafe?.user;
+    if (raw) {
+      user = {
+        id: raw.id,
+        first_name: raw.first_name,
+        username: raw.username,
+      };
+    }
+    return { user, initData, isReady: true };
+  }
+
+  if (process.env.NODE_ENV === "development") {
+    const mockInitData = process.env.NEXT_PUBLIC_MOCK_INIT_DATA;
+    return {
+      user: { id: 12345, first_name: "Dev", username: "devuser" },
+      initData: mockInitData || "mock_init_data",
+      isReady: true,
+    };
+  }
+
+  return { user: null, initData: "", isReady: false };
+}
 
 function applyTheme() {
-  const theme = TG?.WebApp?.themeParams;
+  const theme = window.Telegram?.WebApp?.themeParams;
   if (!theme) return;
   const raw = theme as Record<string, string>;
   Object.entries(raw).forEach(([k, v]) => {
@@ -33,45 +59,18 @@ function applyTheme() {
 }
 
 export function TelegramProvider({ children }: { children: ReactNode }) {
-  const [value] = useState<TelegramContextValue>(() => {
-    if (TG?.WebApp) {
-      const initData = TG.WebApp.initData;
-      let user: TelegramContextValue["user"] = null;
-      const raw = TG.WebApp.initDataUnsafe?.user;
-      if (raw) {
-        user = {
-          id: raw.id,
-          first_name: raw.first_name,
-          username: raw.username,
-        };
-      }
-      return { user, initData, isReady: true };
-    }
-    // Dev mock: use NEXT_PUBLIC_MOCK_INIT_DATA if available
-    if (
-      typeof process !== "undefined" &&
-      process.env.NODE_ENV === "development"
-    ) {
-      const mockInitData = process.env.NEXT_PUBLIC_MOCK_INIT_DATA;
-      return {
-        user: { id: 12345, first_name: "Dev", username: "devuser" },
-        initData: mockInitData || "mock_init_data",
-        isReady: true,
-      };
-    }
-    return {
-      user: null,
-      initData: "",
-      isReady: false,
-    };
-  });
+  const [value] = useState<TelegramContextValue>(getTelegramValue);
 
   useEffect(() => {
-    if (TG?.WebApp) {
-      TG.WebApp.expand();
+    if (window.Telegram?.WebApp) {
+      window.Telegram.WebApp.expand();
       applyTheme();
-      TG.WebApp.onEvent("themeChanged", applyTheme);
-      TG.WebApp.ready();
+      const handler = () => applyTheme();
+      window.Telegram.WebApp.onEvent("themeChanged", handler);
+      window.Telegram.WebApp.ready();
+      return () => {
+        window.Telegram.WebApp.offEvent("themeChanged", handler);
+      };
     }
   }, []);
 
