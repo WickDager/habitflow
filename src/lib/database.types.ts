@@ -118,20 +118,47 @@ export interface Database {
         Row: {
           habit_id: string;
           user_id: string;
-          total_completions: number;
+          current_streak: number;
           last_completed: string;
         };
         Insert: {
           habit_id: string;
           user_id: string;
-          total_completions?: number;
+          current_streak?: number;
           last_completed?: string;
         };
         Update: {
           habit_id?: string;
           user_id?: string;
-          total_completions?: number;
+          current_streak?: number;
           last_completed?: string;
+        };
+        Relationships: [];
+      };
+      todos: {
+        Row: {
+          id: string;
+          user_id: string;
+          title: string;
+          due_date: string | null;
+          is_completed: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          title: string;
+          due_date?: string | null;
+          is_completed?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          title?: string;
+          due_date?: string | null;
+          is_completed?: boolean;
+          created_at?: string;
         };
         Relationships: [];
       };

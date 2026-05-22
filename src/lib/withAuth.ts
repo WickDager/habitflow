@@ -1,45 +1,135 @@
-import { validateInitData, type TelegramUser } from "./validateInitData";
+import { NextResponse } from "next/server";
+import { validateInitData } from "./validateInitData";
+import { createClient } from "@supabase/supabase-js";
+import jwt from "jsonwebtoken";
 import { ratelimit } from "./rateLimit";
-import { serverClient } from "./supabase";
 
-export async function withAuth(
-  request: Request,
-  handler: (req: Request, user: TelegramUser) => Promise<Response>
-): Promise<Response> {
-  try {
-    const initData = request.headers.get("x-telegram-init-data");
-    if (!initData)
-      return Response.json({ error: "MISSING_INIT_DATA" }, { status: 401 });
+export type AuthenticatedContext = {
+  params: any;
+  user: {
+    internal_uuid: string;
+    telegram_id: number;
+    supabase_token: string;
+  };
+};
 
-    const botToken = process.env.TELEGRAM_BOT_TOKEN;
-    if (!botToken)
-      return Response.json({ error: "SERVER_CONFIG_ERROR" }, { status: 500 });
+type Handler = (
+  req: Request,
+  ctx: AuthenticatedContext,
+) => Promise<Response>;
 
-    const telegramUser = validateInitData(initData, botToken);
+function isDev(): boolean {
+  return process.env.NODE_ENV === "development";
+}
 
-    // Auto-register user on first API call from Mini App
-    const sb = serverClient();
-    await sb.from("users").upsert(
-      {
-        telegram_id: telegramUser.id,
-        first_name: telegramUser.first_name,
-        username: telegramUser.username,
-        language_code: telegramUser.language_code,
-      },
-      { onConflict: "telegram_id" }
+function isMockAuth(initData: string): boolean {
+  if (!isDev()) return false;
+  const mockData = process.env.NEXT_PUBLIC_MOCK_INIT_DATA;
+  if (!mockData) return false;
+  return initData === mockData;
+}
+
+export function withAuth(handler: Handler) {
+  const jwtSecret = process.env.SUPABASE_JWT_SECRET;
+  if (!jwtSecret) {
+    throw new Error(
+      "SUPABASE_JWT_SECRET is not set. Add it from Supabase dashboard > Project Settings > API > JWT Secret."
     );
-
-    const { success } = await ratelimit.limit(telegramUser.id.toString());
-    if (!success)
-      return Response.json({ error: "RATE_LIMITED" }, { status: 429 });
-
-    return handler(request, telegramUser);
-  } catch (err) {
-    if (err instanceof Error && err.message === "INVALID_INIT_DATA")
-      return Response.json({ error: "UNAUTHORIZED" }, { status: 401 });
-    if (err instanceof Error && err.message === "INIT_DATA_EXPIRED")
-      return Response.json({ error: "INIT_DATA_EXPIRED" }, { status: 401 });
-    console.error("withAuth error:", err);
-    return Response.json({ error: "INTERNAL_ERROR" }, { status: 500 });
   }
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!supabaseUrl) {
+    throw new Error("NEXT_PUBLIC_SUPABASE_URL is not set.");
+  }
+
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!serviceRoleKey) {
+    throw new Error("SUPABASE_SERVICE_ROLE_KEY is not set.");
+  }
+
+  const botToken = process.env.TELEGRAM_BOT_TOKEN;
+  if (!botToken && !isDev()) {
+    throw new Error("TELEGRAM_BOT_TOKEN is not set.");
+  }
+
+  return async (req: Request, ctx: any) => {
+    try {
+      const initData = req.headers.get("x-telegram-init-data");
+      if (!initData)
+        return NextResponse.json(
+          { error: "Missing init data" },
+          { status: 401 },
+        );
+
+      let telegramUser;
+
+      if (isMockAuth(initData)) {
+        telegramUser = {
+          id: 1234567,
+          first_name: "LocalDev",
+          language_code: "en",
+        };
+      } else {
+        if (!botToken)
+          return NextResponse.json(
+            { error: "Server configuration error" },
+            { status: 500 },
+          );
+
+        const { isValid, user } = validateInitData(initData, botToken);
+        if (!isValid || !user)
+          return NextResponse.json(
+            { error: "Invalid init data" },
+            { status: 401 },
+          );
+        telegramUser = user;
+      }
+
+      const { success } = await ratelimit.limit(telegramUser.id.toString());
+      if (!success)
+        return NextResponse.json({ error: "RATE_LIMITED" }, { status: 429 });
+
+      const adminSupabase = createClient(supabaseUrl, serviceRoleKey);
+      const { data: dbUser, error: upsertError } = await adminSupabase
+        .from("users")
+        .upsert(
+          {
+            telegram_id: telegramUser.id,
+            first_name: telegramUser.first_name,
+            username: (telegramUser as any).username,
+            language_code: telegramUser.language_code || "en",
+          },
+          { onConflict: "telegram_id" },
+        )
+        .select("id")
+        .single();
+
+      if (upsertError || !dbUser)
+        return NextResponse.json({ error: "DB Sync Error" }, { status: 500 });
+
+      const customJwt = jwt.sign(
+        {
+          aud: "authenticated",
+          exp: Math.floor(Date.now() / 1000) + 60 * 60,
+          sub: dbUser.id,
+          role: "authenticated",
+        },
+        jwtSecret,
+      );
+
+      return await handler(req, {
+        ...ctx,
+        user: {
+          internal_uuid: dbUser.id,
+          telegram_id: telegramUser.id,
+          supabase_token: customJwt,
+        },
+      });
+    } catch (error) {
+      return NextResponse.json(
+        { error: "Internal server error" },
+        { status: 500 },
+      );
+    }
+  };
 }

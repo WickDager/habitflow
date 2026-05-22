@@ -20,3 +20,15 @@ export function serverClient() {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 }
+
+export function authenticatedClient(token: string) {
+  return createClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      global: {
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    }
+  );
+}

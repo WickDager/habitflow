@@ -1,6 +1,7 @@
 export const en = {
   // Tabs
   tabToday: "Today",
+  tabTasks: "Tasks",
   tabStats: "Stats",
 
   // TodayView
@@ -41,15 +42,25 @@ export const en = {
   botEnableReminders: "Enable reminders",
   botDisableReminders: "Disable reminders",
   botReminderMessage:
-    "You haven't checked in today. Tap below to log your habits.",
+    "You haven’t checked in today. Tap below to log your habits.",
   botLogHabits: "Log habits",
 
   // Settings / language
   language: "Language",
 
   // a11y
-  ariaToday: "Today's habits",
+  ariaToday: "Today’s habits",
   ariaStats: "View statistics",
+
+  // Tasks
+  newHabit: "New Habit",
+  newTask: "New Task",
+  taskTitle: "Task title",
+  taskDueDate: "Due date (optional)",
+  noTasksYet: "No tasks yet. Tap + to create one.",
+  cancel: "Cancel",
+  habitNameLabel: "Habit name",
+  habitIconLabel: "Choose icon",
 } as const;
 
 export type TranslationKeys = keyof typeof en;

@@ -3,6 +3,7 @@ import type { en } from "./en";
 export const ru: Record<keyof typeof en, string> = {
   // Tabs
   tabToday: "Сегодня",
+  tabTasks: "Задачи",
   tabStats: "Статистика",
 
   // TodayView
@@ -52,4 +53,14 @@ export const ru: Record<keyof typeof en, string> = {
   // a11y
   ariaToday: "Привычки на сегодня",
   ariaStats: "Просмотр статистики",
+
+  // Tasks
+  newHabit: "Новая привычка",
+  newTask: "Новая задача",
+  taskTitle: "Название задачи",
+  taskDueDate: "Срок (необязательно)",
+  noTasksYet: "Нет задач. Нажмите + чтобы создать.",
+  cancel: "Отмена",
+  habitNameLabel: "Название привычки",
+  habitIconLabel: "Выберите иконку",
 };

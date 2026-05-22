@@ -1,18 +1,18 @@
 import { withAuth } from "@/lib/withAuth";
 import { authenticatedClient } from "@/lib/supabase";
-import { HabitSchema } from "@/lib/schemas";
+import { TodoSchema } from "@/lib/schemas";
 
 export const PATCH = withAuth(async (req, ctx) => {
   const { id } = await (ctx as any).params as { id: string };
   const body = await req.json();
-  const parsed = HabitSchema.partial().safeParse(body);
+  const parsed = TodoSchema.partial().safeParse(body);
   if (!parsed.success)
     return Response.json({ error: parsed.error.flatten() }, { status: 400 });
 
   const sb = authenticatedClient(ctx.user.supabase_token);
 
   const { data, error } = await sb
-    .from("habits")
+    .from("todos")
     .update(parsed.data)
     .eq("id", id)
     .select()
@@ -28,8 +28,8 @@ export const DELETE = withAuth(async (req, ctx) => {
   const sb = authenticatedClient(ctx.user.supabase_token);
 
   const { error } = await sb
-    .from("habits")
-    .update({ archived_at: new Date().toISOString() })
+    .from("todos")
+    .delete()
     .eq("id", id);
 
   if (error)

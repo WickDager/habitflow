@@ -52,6 +52,11 @@ export function TodayView() {
     apiFetch,
     {
       fallbackData: [],
+      onErrorRetry: (err, _key, _config, revalidate, { retryCount }) => {
+        if (err.message?.includes("init data is missing")) return;
+        if (retryCount >= 3) return;
+        setTimeout(() => revalidate({ retryCount }), 5000);
+      },
       onSuccess: async (data) => {
         const pending = await getPendingCheckins();
         if (pending.length > 0) {

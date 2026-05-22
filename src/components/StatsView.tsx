@@ -113,7 +113,14 @@ export function StatsView() {
   const { t } = useLanguage();
   const { data, isLoading, error } = useSWR<StatsResponse>(
     "/api/checkins/stats",
-    apiFetch
+    apiFetch,
+    {
+      onErrorRetry: (err, _key, _config, revalidate, { retryCount }) => {
+        if (err.message?.includes("init data is missing")) return;
+        if (retryCount >= 3) return;
+        setTimeout(() => revalidate({ retryCount }), 5000);
+      },
+    }
   );
 
   if (isLoading) return <HabitSkeleton count={4} />;

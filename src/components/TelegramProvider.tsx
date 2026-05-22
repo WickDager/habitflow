@@ -47,11 +47,22 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
       }
       return { user, initData, isReady: true };
     }
-    // Dev mock
+    // Dev mock: use NEXT_PUBLIC_MOCK_INIT_DATA if available
+    if (
+      typeof process !== "undefined" &&
+      process.env.NODE_ENV === "development"
+    ) {
+      const mockInitData = process.env.NEXT_PUBLIC_MOCK_INIT_DATA;
+      return {
+        user: { id: 12345, first_name: "Dev", username: "devuser" },
+        initData: mockInitData || "mock_init_data",
+        isReady: true,
+      };
+    }
     return {
-      user: { id: 12345, first_name: "Dev", username: "devuser" },
-      initData: "mock_init_data",
-      isReady: true,
+      user: null,
+      initData: "",
+      isReady: false,
     };
   });
 

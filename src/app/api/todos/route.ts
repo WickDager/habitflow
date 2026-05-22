@@ -1,15 +1,14 @@
 import { withAuth } from "@/lib/withAuth";
 import { authenticatedClient } from "@/lib/supabase";
-import { HabitSchema } from "@/lib/schemas";
+import { TodoSchema } from "@/lib/schemas";
 
 export const GET = withAuth(async (req, ctx) => {
   const sb = authenticatedClient(ctx.user.supabase_token);
 
   const { data, error } = await sb
-    .from("habits")
+    .from("todos")
     .select("*")
-    .is("archived_at", null)
-    .order("sort_order", { ascending: true });
+    .order("created_at", { ascending: false });
 
   if (error)
     return Response.json({ error: error.message }, { status: 500 });
@@ -18,22 +17,19 @@ export const GET = withAuth(async (req, ctx) => {
 
 export const POST = withAuth(async (req, ctx) => {
   const body = await req.json();
-  const parsed = HabitSchema.safeParse(body);
+  const parsed = TodoSchema.safeParse(body);
   if (!parsed.success)
     return Response.json({ error: parsed.error.flatten() }, { status: 400 });
 
   const sb = authenticatedClient(ctx.user.supabase_token);
 
   const { data, error } = await sb
-    .from("habits")
+    .from("todos")
     .insert({ user_id: ctx.user.internal_uuid, ...parsed.data })
     .select()
     .single();
 
-  if (error) {
-    if (error.message.includes("HABIT_LIMIT_REACHED"))
-      return Response.json({ error: "HABIT_LIMIT_REACHED" }, { status: 400 });
+  if (error)
     return Response.json({ error: error.message }, { status: 500 });
-  }
   return Response.json(data);
 });
