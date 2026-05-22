@@ -65,17 +65,9 @@ function applyTheme() {
 }
 
 export function TelegramProvider({ children }: { children: ReactNode }) {
-  const [value, setValue] = useState<TelegramContextValue>({
-    user: null,
-    initData: "",
-    isReady: false,
-    checked: false,
-  });
+  const [value] = useState<TelegramContextValue>(getTelegramValue);
 
   useEffect(() => {
-    const v = getTelegramValue();
-    setValue(v);
-
     const wa = window.Telegram?.WebApp;
     if (!wa) return;
     wa.expand();
