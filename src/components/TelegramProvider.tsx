@@ -65,7 +65,18 @@ function applyTheme() {
 }
 
 export function TelegramProvider({ children }: { children: ReactNode }) {
-  const [value] = useState<TelegramContextValue>(getTelegramValue);
+  const [value, setValue] = useState<TelegramContextValue>({
+    user: null,
+    initData: "",
+    isReady: false,
+    checked: false,
+  });
+
+  useEffect(() => {
+    // window.Telegram is a browser-only API — must initialize in an effect
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setValue(getTelegramValue());
+  }, []);
 
   useEffect(() => {
     const wa = window.Telegram?.WebApp;
