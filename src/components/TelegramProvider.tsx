@@ -21,6 +21,9 @@ const TelegramContext = createContext<TelegramContextValue>({
 });
 
 function getTelegramValue(): TelegramContextValue {
+  if (typeof window === "undefined") {
+    return { user: null, initData: "", isReady: false };
+  }
   const TG = window.Telegram;
   if (TG?.WebApp) {
     const initData = TG.WebApp.initData;
