@@ -2,8 +2,6 @@ import { NextResponse } from "next/server";
 import { validateInitData } from "./validateInitData";
 import { createClient } from "@supabase/supabase-js";
 import jwt from "jsonwebtoken";
-import { ratelimit } from "./rateLimit";
-
 export type AuthenticatedContext = {
   params: unknown;
   user: {
@@ -94,6 +92,7 @@ export function withAuth(handler: Handler) {
         telegramUser = user;
       }
 
+      const { ratelimit } = await import("./rateLimit");
       const { success } = await ratelimit.limit(telegramUser.id.toString());
       if (!success)
         return NextResponse.json({ error: "RATE_LIMITED" }, { status: 429 });
