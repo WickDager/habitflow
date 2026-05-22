@@ -12,6 +12,15 @@ function botT(langCode: string | undefined) {
   return t;
 }
 
+export async function GET() {
+  const hasToken = Boolean(process.env.TELEGRAM_BOT_TOKEN);
+  return Response.json({
+    ok: true,
+    bot: hasToken ? "configured" : "missing TELEGRAM_BOT_TOKEN",
+    webhook: "POST /api/bot",
+  });
+}
+
 export async function POST(request: Request) {
   const secret = request.headers.get("x-telegram-bot-api-secret-token");
   if (secret !== process.env.TELEGRAM_WEBHOOK_SECRET)

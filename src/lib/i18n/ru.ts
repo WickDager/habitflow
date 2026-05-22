@@ -68,4 +68,6 @@ export const ru: Record<keyof typeof en, string> = {
   // Error screen (shown outside Telegram)
   appTitle: "HabitFlow",
   notInTelegram: "Пожалуйста, откройте HabitFlow напрямую в Telegram.",
+  notInTelegramDesc:
+    "Откройте приложение Telegram, найдите бота (@{{bot}}) и нажмите кнопку меню или отправьте /start.",
 };

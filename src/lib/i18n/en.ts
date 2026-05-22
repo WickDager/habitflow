@@ -66,6 +66,8 @@ export const en = {
   // Error screen (shown outside Telegram)
   appTitle: "HabitFlow",
   notInTelegram: "Please open HabitFlow directly within Telegram.",
+  notInTelegramDesc:
+    "Open your Telegram app, find your bot (@{{bot}}), and tap the menu button or send /start.",
 } as const;
 
 export type TranslationKeys = keyof typeof en;

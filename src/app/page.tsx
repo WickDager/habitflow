@@ -25,10 +25,14 @@ export default function Home() {
   }
 
   if (!isReady && !isDev) {
+    const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || "your_bot";
     return (
       <div className="error-state" style={{ paddingTop: "40vh" }}>
         <h1 style={{ fontSize: "1.5rem", marginBottom: 12 }}>{t("appTitle")}</h1>
         <p>{t("notInTelegram")}</p>
+        <p style={{ marginTop: 8, opacity: 0.7 }}>
+          {t("notInTelegramDesc", { bot: botUsername })}
+        </p>
       </div>
     );
   }
