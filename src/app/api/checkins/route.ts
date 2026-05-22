@@ -11,10 +11,10 @@ export const GET = withAuth(async (req, ctx) => {
   const { data, error } = await sb
     .from("habits")
     .select(
-      `*,
-      checkins!left(*, filter: date.eq.${date})`
+      `*,checkins!left(*)`
     )
     .is("archived_at", null)
+    .eq("checkins.date", date)
     .order("sort_order", { ascending: true });
 
   if (error)

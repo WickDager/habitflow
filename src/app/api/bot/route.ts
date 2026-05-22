@@ -4,6 +4,13 @@ import {
   sendMiniAppButton,
   answerCallbackQuery,
 } from "@/lib/telegram";
+import { en } from "@/lib/i18n/en";
+import { ru } from "@/lib/i18n/ru";
+
+function botT(langCode: string | undefined) {
+  const t = (langCode === "ru" || langCode === "uk" || langCode === "be") ? ru : en;
+  return t;
+}
 
 export async function POST(request: Request) {
   const secret = request.headers.get("x-telegram-bot-api-secret-token");
@@ -15,6 +22,7 @@ export async function POST(request: Request) {
   if (update.message?.text === "/start") {
     const msg = update.message;
     const chatId = msg.chat.id;
+    const t = botT(msg.from?.language_code);
 
     const sb = serverClient();
     await sb.from("users").upsert(
@@ -23,6 +31,7 @@ export async function POST(request: Request) {
         first_name: msg.from.first_name,
         username: msg.from.username,
         chat_id: chatId,
+        language_code: msg.from.language_code || "en",
       },
       { onConflict: "telegram_id" }
     );
@@ -31,8 +40,8 @@ export async function POST(request: Request) {
 
     await sendMiniAppButton(
       chatId,
-      "Track your daily habits in under 10 seconds.\n\nTap below to open HabitFlow.",
-      "Open HabitFlow",
+      t.botWelcome,
+      t.botOpenApp,
       appUrl
     );
 
@@ -41,12 +50,13 @@ export async function POST(request: Request) {
 
   if (update.message?.text === "/settings") {
     const chatId = update.message.chat.id;
-    await sendMessage(chatId, "Reminder settings:", {
+    const t = botT(update.message.from?.language_code);
+    await sendMessage(chatId, t.botReminderSettings, {
       replyMarkup: {
         inline_keyboard: [
           [
-            { text: "Enable reminders", callback_data: "reminder_on" },
-            { text: "Disable reminders", callback_data: "reminder_off" },
+            { text: t.botEnableReminders, callback_data: "reminder_on" },
+            { text: t.botDisableReminders, callback_data: "reminder_off" },
           ],
         ],
       },

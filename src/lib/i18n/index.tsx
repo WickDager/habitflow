@@ -5,6 +5,8 @@ import {
   useContext,
   useState,
   useCallback,
+  useEffect,
+  useMemo,
   type ReactNode,
 } from "react";
 import { en } from "./en";
@@ -55,7 +57,11 @@ function interpolate(
 }
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [lang, setLangState] = useState<Lang>(detectInitialLanguage);
+  const [lang, setLangState] = useState<Lang>("en");
+
+  useEffect(() => {
+    setLangState(detectInitialLanguage());
+  }, []);
 
   const setLang = useCallback((newLang: Lang) => {
     setLangState(newLang);
@@ -75,8 +81,10 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     [lang]
   );
 
+  const value = useMemo(() => ({ lang, t, setLang }), [lang, t, setLang]);
+
   return (
-    <LanguageContext.Provider value={{ lang, t, setLang }}>
+    <LanguageContext.Provider value={value}>
       {children}
     </LanguageContext.Provider>
   );

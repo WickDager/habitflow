@@ -35,19 +35,6 @@ yarn-error.log*
 !.env.example
 .env.local
 
-# claude
-.claude/
-
-# claude agent files (moved to project root, outside repo)
-/AGENTS.md
-/CLAUDE.md
-
-# supabase migration (one-time setup, outside repo)
-/supabase/migration.sql
-
-# supabase local CLI cache (not needed for Vercel)
-/supabase/.temp/
-
 # vercel
 .vercel
 

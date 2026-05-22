@@ -12,17 +12,19 @@ interface TelegramContextValue {
   user: { id: number; first_name: string; username?: string } | null;
   initData: string;
   isReady: boolean;
+  checked: boolean;
 }
 
 const TelegramContext = createContext<TelegramContextValue>({
   user: null,
   initData: "",
   isReady: false,
+  checked: false,
 });
 
 function getTelegramValue(): TelegramContextValue {
   if (typeof window === "undefined") {
-    return { user: null, initData: "", isReady: false };
+    return { user: null, initData: "", isReady: false, checked: false };
   }
   const TG = window.Telegram;
   if (TG?.WebApp) {
@@ -36,7 +38,7 @@ function getTelegramValue(): TelegramContextValue {
         username: raw.username,
       };
     }
-    return { user, initData, isReady: true };
+    return { user, initData, isReady: true, checked: true };
   }
 
   if (process.env.NODE_ENV === "development") {
@@ -45,10 +47,11 @@ function getTelegramValue(): TelegramContextValue {
       user: { id: 12345, first_name: "Dev", username: "devuser" },
       initData: mockInitData || "mock_init_data",
       isReady: true,
+      checked: true,
     };
   }
 
-  return { user: null, initData: "", isReady: false };
+  return { user: null, initData: "", isReady: false, checked: true };
 }
 
 function applyTheme() {
@@ -62,9 +65,17 @@ function applyTheme() {
 }
 
 export function TelegramProvider({ children }: { children: ReactNode }) {
-  const [value] = useState<TelegramContextValue>(getTelegramValue);
+  const [value, setValue] = useState<TelegramContextValue>({
+    user: null,
+    initData: "",
+    isReady: false,
+    checked: false,
+  });
 
   useEffect(() => {
+    const v = getTelegramValue();
+    setValue(v);
+
     const wa = window.Telegram?.WebApp;
     if (!wa) return;
     wa.expand();

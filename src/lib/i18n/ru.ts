@@ -52,6 +52,7 @@ export const ru: Record<keyof typeof en, string> = {
 
   // a11y
   ariaToday: "Привычки на сегодня",
+  ariaTasks: "Задачи",
   ariaStats: "Просмотр статистики",
 
   // Tasks
@@ -63,4 +64,8 @@ export const ru: Record<keyof typeof en, string> = {
   cancel: "Отмена",
   habitNameLabel: "Название привычки",
   habitIconLabel: "Выберите иконку",
+
+  // Error screen (shown outside Telegram)
+  appTitle: "HabitFlow",
+  notInTelegram: "Пожалуйста, откройте HabitFlow напрямую в Telegram.",
 };

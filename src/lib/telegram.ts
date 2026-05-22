@@ -51,12 +51,22 @@ export async function sendMiniAppButton(
 }
 
 export async function setMyCommands() {
-  return tgFetch("setMyCommands", {
+  const en = {
     commands: [
       { command: "start", description: "Open HabitFlow" },
       { command: "settings", description: "Manage reminders" },
     ],
-  });
+    language_code: "en",
+  };
+  const ru = {
+    commands: [
+      { command: "start", description: "Открыть HabitFlow" },
+      { command: "settings", description: "Управление напоминаниями" },
+    ],
+    language_code: "ru",
+  };
+  await tgFetch("setMyCommands", en);
+  await tgFetch("setMyCommands", ru);
 }
 
 export async function setWebhook(url: string, secretToken: string) {

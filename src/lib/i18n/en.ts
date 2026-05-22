@@ -50,6 +50,7 @@ export const en = {
 
   // a11y
   ariaToday: "Today’s habits",
+  ariaTasks: "Tasks",
   ariaStats: "View statistics",
 
   // Tasks
@@ -61,6 +62,10 @@ export const en = {
   cancel: "Cancel",
   habitNameLabel: "Habit name",
   habitIconLabel: "Choose icon",
+
+  // Error screen (shown outside Telegram)
+  appTitle: "HabitFlow",
+  notInTelegram: "Please open HabitFlow directly within Telegram.",
 } as const;
 
 export type TranslationKeys = keyof typeof en;

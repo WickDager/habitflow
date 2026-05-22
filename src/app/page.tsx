@@ -16,21 +16,21 @@ export default function Home() {
   const [tab, setTab] = useState<Tab>("today");
   const [modalOpen, setModalOpen] = useState(false);
   const { t } = useLanguage();
-  const { isReady } = useTelegram();
+  const { isReady, checked } = useTelegram();
 
   const isDev = process.env.NODE_ENV === "development";
+
+  if (!checked) {
+    return null;
+  }
 
   if (!isReady && !isDev) {
     return (
       <div className="error-state" style={{ paddingTop: "40vh" }}>
-        <h1 style={{ fontSize: "1.5rem", marginBottom: 12 }}>HabitFlow</h1>
-        <p>Please open HabitFlow directly within Telegram.</p>
+        <h1 style={{ fontSize: "1.5rem", marginBottom: 12 }}>{t("appTitle")}</h1>
+        <p>{t("notInTelegram")}</p>
       </div>
     );
-  }
-
-  if (!isReady) {
-    return null;
   }
 
   return (
@@ -47,7 +47,7 @@ export default function Home() {
         <button
           className={`tab-btn ${tab === "tasks" ? "active" : ""}`}
           onClick={() => setTab("tasks")}
-          aria-label={t("tabTasks")}
+          aria-label={t("ariaTasks")}
           style={{ minHeight: 44 }}
         >
           {t("tabTasks")}
