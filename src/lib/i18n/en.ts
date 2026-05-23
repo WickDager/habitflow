@@ -33,6 +33,8 @@ export const en = {
   moodDescNeutral: "neutral",
   moodDescSad: "sad",
   moodTrendLabel: "Mood trend (last 7 days): {{summary}}",
+  noMoodData: "No mood data yet. Log your mood when saving habits.",
+  noStreaksYet: "Complete a habit to start a streak.",
 
   // Bot messages
   botWelcome:

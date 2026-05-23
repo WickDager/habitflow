@@ -49,28 +49,44 @@ function AnimatedNumber({ value }: { value: number }) {
   return <span ref={ref}>0</span>;
 }
 
-function MoodSparkline({ moods }: { moods: MoodEntry[] }) {
+const MOOD_EMOJI: Record<number, string> = { 1: "😊", 2: "😐", 3: "😞" };
+
+function aggregateMoodsByDay(moods: MoodEntry[]): MoodEntry[] {
+  const map = new Map<string, MoodEntry>();
+  for (const m of moods) {
+    if (!map.has(m.date)) map.set(m.date, m);
+  }
+  return [...map.values()].sort((a, b) => a.date.localeCompare(b.date));
+}
+
+function MoodChart({ moods }: { moods: MoodEntry[] }) {
   const { t } = useLanguage();
-  const points = moods.slice(0, 7).reverse();
-  if (points.length < 2) return null;
+  const points = aggregateMoodsByDay(moods);
+  if (points.length === 0) {
+    return <p className="mood-empty">{t("noMoodData")}</p>;
+  }
 
-  const w = 120;
-  const h = 40;
-  const padding = 4;
-  const stepX = (w - padding * 2) / (points.length - 1);
+  const padLeft = 28;
+  const padRight = 8;
+  const padTop = 12;
+  const padBottom = 24;
+  const w = 360;
+  const h = 140;
+  const chartW = w - padLeft - padRight;
+  const chartH = h - padTop - padBottom;
 
-  const yForMood = (m: number) =>
-    padding + ((h - padding * 2) * (m - 1)) / 2;
+  const xForIndex = (i: number) =>
+    padLeft + (points.length > 1 ? (i / (points.length - 1)) * chartW : chartW / 2);
+  const yForMood = (m: number) => padTop + ((m - 1) / 2) * chartH;
 
-  const d = points
-    .map((p, i) => {
-      const x = padding + i * stepX;
-      const y = yForMood(p.mood);
-      return i === 0 ? `M ${x} ${y}` : `L ${x} ${y}`;
-    })
+  const lineD = points
+    .map((p, i) => `${i === 0 ? "M" : "L"} ${xForIndex(i)} ${yForMood(p.mood)}`)
     .join(" ");
 
-  const fillD = `${d} L ${padding + (points.length - 1) * stepX} ${h} L ${padding} ${h} Z`;
+  const dayNames = points.map((p) => {
+    const d = new Date(p.date);
+    return d.toLocaleDateString(undefined, { weekday: "short" });
+  });
 
   const labels: Record<number, string> = {
     1: t("moodDescHappy"),
@@ -83,29 +99,112 @@ function MoodSparkline({ moods }: { moods: MoodEntry[] }) {
 
   return (
     <svg
-      width={w}
-      height={h}
       viewBox={`0 0 ${w} ${h}`}
+      className="mood-chart"
       aria-label={t("moodTrendLabel", { summary })}
+      role="img"
     >
-      <defs>
-        <linearGradient id="mood-fill" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="var(--color-primary)" stopOpacity="0.2" />
-          <stop
-            offset="100%"
-            stopColor="var(--color-primary)"
-            stopOpacity="0"
-          />
-        </linearGradient>
-      </defs>
-      <path d={fillD} fill="url(#mood-fill)" />
-      <path
-        d={d}
-        fill="none"
-        stroke="var(--color-primary)"
-        strokeWidth="2"
-      />
+      {/* Grid lines */}
+      {[1, 2, 3].map((mood) => (
+        <line
+          key={mood}
+          x1={padLeft}
+          y1={yForMood(mood)}
+          x2={w - padRight}
+          y2={yForMood(mood)}
+          stroke="var(--color-border)"
+          strokeWidth="0.5"
+          strokeDasharray="3 3"
+        />
+      ))}
+
+      {/* Y-axis labels */}
+      {[1, 2, 3].map((mood) => (
+        <text
+          key={mood}
+          x={padLeft - 6}
+          y={yForMood(mood) + 5}
+          textAnchor="end"
+          fontSize="14"
+        >
+          {MOOD_EMOJI[mood]}
+        </text>
+      ))}
+
+      {/* Line */}
+      {points.length >= 2 && (
+        <path
+          d={lineD}
+          fill="none"
+          stroke="var(--color-primary)"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      )}
+
+      {/* Data points */}
+      {points.map((p, i) => (
+        <text
+          key={`${p.date}-${p.habit_id}`}
+          x={xForIndex(i)}
+          y={yForMood(p.mood) + 5}
+          textAnchor="middle"
+          fontSize="16"
+          className="mood-dot"
+        >
+          {MOOD_EMOJI[p.mood]}
+        </text>
+      ))}
+
+      {/* X-axis labels */}
+      {points.length > 1 &&
+        points.map((p, i) => (
+          <text
+            key={`d-${p.date}`}
+            x={xForIndex(i)}
+            y={h - 4}
+            textAnchor="middle"
+            fontSize="10"
+            fill="var(--color-muted)"
+          >
+            {dayNames[i]}
+          </text>
+        ))}
     </svg>
+  );
+}
+
+function MoodBreakdown({ moods }: { moods: MoodEntry[] }) {
+  const counts: Record<number, number> = { 1: 0, 2: 0, 3: 0 };
+  const seen = new Set<string>();
+  for (const m of moods) {
+    if (!seen.has(m.date)) {
+      seen.add(m.date);
+      counts[m.mood] = (counts[m.mood] || 0) + 1;
+    }
+  }
+  const total = counts[1] + counts[2] + counts[3];
+  if (total === 0) return null;
+
+  return (
+    <div className="mood-breakdown">
+      {[1, 2, 3].map((mood) => {
+        const pct = Math.round((counts[mood] / total) * 100) || 0;
+        return (
+          <div key={mood} className="mood-breakdown-item">
+            <span className="mood-breakdown-emoji">{MOOD_EMOJI[mood]}</span>
+            <div className="mood-breakdown-bar-track">
+              <div
+                className="mood-breakdown-bar"
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+            <span className="mood-breakdown-count">{counts[mood]}</span>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
@@ -140,20 +239,25 @@ export function StatsView() {
   return (
     <div className="stats-view">
       <div className="streak-grid">
-        {data.streaks.map((s) => (
-          <div key={s.habit_id} className="streak-card">
-            <div className="streak-header">
-              <span className="streak-icon">🔥</span>
-              <AnimatedNumber value={s.total_completions ?? 0} />
-              <span className="streak-unit">{t("streakDays")}</span>
+        {data.streaks.length === 0 ? (
+          <p className="muted-text">{t("noStreaksYet")}</p>
+        ) : (
+          data.streaks.map((s) => (
+            <div key={s.habit_id} className="streak-card">
+              <div className="streak-header">
+                <span className="streak-icon">🔥</span>
+                <AnimatedNumber value={s.total_completions ?? 0} />
+                <span className="streak-unit">{t("streakDays")}</span>
+              </div>
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
 
       <div className="mood-section">
         <h3>{t("moodTrend")}</h3>
-        <MoodSparkline moods={data.recentMoods} />
+        <MoodChart moods={data.recentMoods} />
+        <MoodBreakdown moods={data.recentMoods} />
       </div>
 
       <div className="weekly-section">

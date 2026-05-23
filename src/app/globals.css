@@ -17,6 +17,7 @@
   --color-muted: var(--tg-hint);
   --color-primary: var(--tg-button);
   --color-primary-text: var(--tg-btn-text);
+  --color-border: var(--tg-theme-section-separator-color, #e0e0e0);
 
   --space-xs: 4px;
   --space-sm: 8px;
@@ -272,6 +273,77 @@ body {
   color: var(--color-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
+}
+
+/* Mood chart */
+.mood-chart {
+  width: 100%;
+  height: auto;
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm);
+}
+
+.mood-dot {
+  cursor: default;
+  transition: transform 0.2s ease;
+}
+
+/* Mood breakdown */
+.mood-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: var(--space-sm);
+}
+
+.mood-breakdown-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.mood-breakdown-emoji {
+  font-size: 1.1rem;
+  width: 28px;
+  text-align: center;
+}
+
+.mood-breakdown-bar-track {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--color-border);
+  overflow: hidden;
+}
+
+.mood-breakdown-bar {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--color-primary);
+  transition: width 0.6s ease-out;
+}
+
+.mood-breakdown-count {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-muted);
+  min-width: 20px;
+  text-align: right;
+}
+
+.mood-empty {
+  text-align: center;
+  color: var(--color-muted);
+  font-size: 0.85rem;
+  padding: var(--space-md);
+}
+
+.muted-text {
+  text-align: center;
+  color: var(--color-muted);
+  font-size: 0.85rem;
+  padding: var(--space-md);
 }
 
 .progress-bar {

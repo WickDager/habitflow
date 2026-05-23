@@ -35,6 +35,8 @@ export const ru: Record<keyof typeof en, string> = {
   moodDescNeutral: "нормально",
   moodDescSad: "плохо",
   moodTrendLabel: "Настроение (последние 7 дней): {{summary}}",
+  noMoodData: "Нет данных о настроении. Отмечайте настроение при сохранении привычек.",
+  noStreaksYet: "Выполните привычку, чтобы начать серию.",
 
   // Bot messages
   botWelcome:

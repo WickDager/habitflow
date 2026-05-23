@@ -16,7 +16,7 @@ export const GET = withAuth(async (req, ctx) => {
       .eq("user_id", userId)
       .not("mood", "is", null)
       .order("date", { ascending: false })
-      .limit(7),
+      .limit(14),
     sb
       .from("checkins")
       .select("habit_id, completed, date")
