@@ -331,6 +331,7 @@ export function TodayView() {
       )}
 
       <EditHabitSheet
+        key={editingHabit?.id ?? "empty"}
         habit={editingHabit}
         onClose={() => setEditingHabit(null)}
       />

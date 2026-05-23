@@ -22,8 +22,8 @@ const EMOJIS = ["🏃", "📚", "💧", "🧘", "💤", "🍎", "✍️", "🎯"
 export function EditHabitSheet({ habit, onClose }: EditHabitSheetProps) {
   const { t } = useLanguage();
   const { mutate } = useSWRConfig();
-  const [name, setName] = useState("");
-  const [icon, setIcon] = useState("");
+  const [name, setName] = useState(habit?.name ?? "");
+  const [icon, setIcon] = useState(habit?.icon ?? "");
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState("");
@@ -31,15 +31,9 @@ export function EditHabitSheet({ habit, onClose }: EditHabitSheetProps) {
   const nameRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (habit) {
-      setName(habit.name);
-      setIcon(habit.icon);
-      setError("");
-      setShowDeleteConfirm(false);
-      haptics.select();
-      setTimeout(() => nameRef.current?.focus(), 100);
-    }
-  }, [habit]);
+    haptics.select();
+    setTimeout(() => nameRef.current?.focus(), 100);
+  }, []);
 
   if (!habit) return null;
 
