@@ -12,7 +12,58 @@ function botT(langCode: string | undefined) {
   return t;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const url = new URL(request.url);
+  const testChatId = url.searchParams.get("test_chat_id");
+
+  if (testChatId || url.searchParams.get("auto_test") !== null) {
+    let chatId: number;
+    if (testChatId) {
+      chatId = parseInt(testChatId);
+    } else {
+      const sb = serverClient();
+      const { data: user } = await sb
+        .from("users")
+        .select("chat_id")
+        .not("chat_id", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+      if (!user?.chat_id) {
+        return Response.json({ error: "No user with chat_id found in DB. Send /start to the bot first." });
+      }
+      chatId = user.chat_id;
+    }
+
+    const token = process.env.TELEGRAM_BOT_TOKEN;
+    const productionDomain = process.env.NEXT_PUBLIC_APP_URL
+      ? process.env.NEXT_PUBLIC_APP_URL
+      : "https://habitflow-pi-ten.vercel.app";
+    const appUrl = productionDomain.replace(/^https?:\/\//, "https://");
+
+    const payload = {
+      chat_id: chatId,
+      text: "Debug test — web_app button",
+      reply_markup: {
+        inline_keyboard: [[
+          { text: "Open HabitFlow", web_app: { url: appUrl } }
+        ]]
+      }
+    };
+
+    try {
+      const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json();
+      return Response.json({ chat_id: chatId, appUrl, telegram_response: json });
+    } catch (e) {
+      return Response.json({ chat_id: chatId, appUrl, error: String(e) });
+    }
+  }
+
   const missing: string[] = [];
   if (!process.env.TELEGRAM_BOT_TOKEN) missing.push("TELEGRAM_BOT_TOKEN");
   if (!process.env.TELEGRAM_WEBHOOK_SECRET) missing.push("TELEGRAM_WEBHOOK_SECRET");
