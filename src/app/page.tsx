@@ -26,8 +26,9 @@ export default function Home() {
 
   if (!isReady && !isDev) {
     const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || "your_bot";
-    const hasTg = typeof window !== "undefined" && !!(window as any).Telegram;
-    const hasWebApp = hasTg && !!((window as any).Telegram?.WebApp);
+    const tg = typeof window !== "undefined" ? window.Telegram : undefined;
+    const hasTg = !!tg;
+    const hasWebApp = !!tg?.WebApp;
     return (
       <div className="error-state" style={{ paddingTop: "10vh", padding: "20px" }}>
         <h1 style={{ fontSize: "1.5rem", marginBottom: 12 }}>{t("appTitle")}</h1>
