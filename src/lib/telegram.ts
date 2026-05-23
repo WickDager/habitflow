@@ -32,9 +32,16 @@ export async function sendMessage(
 export async function sendMiniAppButton(
   chatId: number,
   text: string,
-  buttonLabel: string,
-  appUrl: string
+  buttonLabel: string
 ) {
+  const productionDomain = process.env.NEXT_PUBLIC_APP_URL
+    ? process.env.NEXT_PUBLIC_APP_URL
+    : process.env.VERCEL_PROJECT_PRODUCTION_URL
+      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+      : "https://habitflow-pi-ten.vercel.app";
+
+  const appUrl = productionDomain.replace(/^https?:\/\//, "https://");
+
   return sendMessage(chatId, text, {
     parseMode: "HTML",
     replyMarkup: {

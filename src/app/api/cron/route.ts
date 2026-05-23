@@ -34,14 +34,11 @@ export async function GET(request: Request) {
 
     if (checkins && checkins.length > 0) continue;
 
-    const appUrl = `https://t.me/${process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME}/${process.env.NEXT_PUBLIC_TELEGRAM_APP_SHORT_NAME}`;
-
     try {
       await sendMiniAppButton(
         u.chat_id!,
         "You haven't checked in today. Tap below to log your habits.",
-        "Log habits",
-        appUrl
+        "Log habits"
       );
       reminded++;
     } catch {
