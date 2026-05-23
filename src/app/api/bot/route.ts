@@ -52,13 +52,11 @@ export async function POST(request: Request) {
       { onConflict: "telegram_id" }
     );
 
-    const host = request.headers.get("host") || "habitflow-pi-ten.vercel.app";
-    const appUrl = `https://${host}`;
+    const appUrl = `https://t.me/${process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME}/${process.env.NEXT_PUBLIC_TELEGRAM_APP_SHORT_NAME}`;
 
     try {
       await sendMiniAppButton(chatId, t.botWelcome, t.botOpenApp, appUrl);
     } catch {
-      // fallback: send plain text if web_app button fails
       await sendMessage(chatId, t.botWelcome + "\n\n" + appUrl);
     }
 
