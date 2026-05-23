@@ -13,18 +13,25 @@ function botT(langCode: string | undefined) {
 }
 
 export async function GET() {
-  const hasToken = Boolean(process.env.TELEGRAM_BOT_TOKEN);
+  const missing: string[] = [];
+  if (!process.env.TELEGRAM_BOT_TOKEN) missing.push("TELEGRAM_BOT_TOKEN");
+  if (!process.env.TELEGRAM_WEBHOOK_SECRET) missing.push("TELEGRAM_WEBHOOK_SECRET");
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL) missing.push("NEXT_PUBLIC_SUPABASE_URL");
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) missing.push("SUPABASE_SERVICE_ROLE_KEY");
+  if (!process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME) missing.push("NEXT_PUBLIC_TELEGRAM_BOT_USERNAME");
+  if (!process.env.NEXT_PUBLIC_TELEGRAM_APP_SHORT_NAME) missing.push("NEXT_PUBLIC_TELEGRAM_APP_SHORT_NAME");
+
   return Response.json({
-    ok: true,
-    bot: hasToken ? "configured" : "missing TELEGRAM_BOT_TOKEN",
-    webhook: "POST /api/bot",
+    ok: missing.length === 0,
+    missing: missing.length > 0 ? missing : undefined,
   });
 }
 
 export async function POST(request: Request) {
-  const secret = request.headers.get("x-telegram-bot-api-secret-token");
-  if (secret !== process.env.TELEGRAM_WEBHOOK_SECRET)
-    return new Response("Unauthorized", { status: 401 });
+  try {
+    const secret = request.headers.get("x-telegram-bot-api-secret-token");
+    if (secret !== process.env.TELEGRAM_WEBHOOK_SECRET)
+      return new Response("Unauthorized", { status: 401 });
 
   const update = await request.json();
 
@@ -89,4 +96,11 @@ export async function POST(request: Request) {
   }
 
   return Response.json({ ok: true });
+  } catch (err) {
+    console.error("Bot error:", err);
+    return Response.json(
+      { error: err instanceof Error ? err.message : "Internal error" },
+      { status: 500 }
+    );
+  }
 }
