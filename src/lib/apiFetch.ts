@@ -14,6 +14,16 @@ function getInitData(): string | undefined {
   const tgInitData = window.Telegram?.WebApp?.initData;
   if (tgInitData) return tgInitData;
 
+  // Telegram Web (browser version): init data in URL fragment
+  const hash = window.location.hash;
+  if (hash.includes("tgWebAppData=")) {
+    const prefix = "tgWebAppData=";
+    const start = hash.indexOf(prefix) + prefix.length;
+    const end = hash.indexOf("&", start);
+    const raw = end === -1 ? hash.slice(start) : hash.slice(start, end);
+    if (raw) return decodeURIComponent(raw);
+  }
+
   if (process.env.NODE_ENV === "development") {
     return process.env.NEXT_PUBLIC_MOCK_INIT_DATA;
   }
