@@ -100,7 +100,7 @@ export async function POST(request: Request) {
     console.error("Bot error:", err);
     return Response.json(
       { error: err instanceof Error ? err.message : "Internal error" },
-      { status: 500 }
+      { status: 200 }
     );
   }
 }
