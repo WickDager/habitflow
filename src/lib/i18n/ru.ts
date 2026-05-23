@@ -62,6 +62,7 @@ export const ru: Record<keyof typeof en, string> = {
   newTask: "Новая задача",
   taskTitle: "Название задачи",
   taskDueDate: "Срок (необязательно)",
+  taskDueTime: "Время (необязательно)",
   noTasksYet: "Нет задач. Нажмите + чтобы создать.",
   cancel: "Отмена",
   habitNameLabel: "Название привычки",
@@ -71,6 +72,9 @@ export const ru: Record<keyof typeof en, string> = {
   deleteHabitConfirm: "Удалить эту привычку? История отметок будет сохранена.",
   save: "Сохранить",
   delete: "Удалить",
+  editTask: "Редактировать задачу",
+  deleteTask: "Удалить задачу",
+  deleteTaskConfirm: "Удалить эту задачу? Это действие нельзя отменить.",
 
   // Error screen (shown outside Telegram)
   appTitle: "HabitFlow",

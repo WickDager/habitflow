@@ -60,6 +60,7 @@ export const en = {
   newTask: "New Task",
   taskTitle: "Task title",
   taskDueDate: "Due date (optional)",
+  taskDueTime: "Time (optional)",
   noTasksYet: "No tasks yet. Tap + to create one.",
   cancel: "Cancel",
   habitNameLabel: "Habit name",
@@ -69,6 +70,9 @@ export const en = {
   deleteHabitConfirm: "Delete this habit? Your check-in history will be preserved.",
   save: "Save",
   delete: "Delete",
+  editTask: "Edit task",
+  deleteTask: "Delete task",
+  deleteTaskConfirm: "Delete this task? This cannot be undone.",
 
   // Error screen (shown outside Telegram)
   appTitle: "HabitFlow",

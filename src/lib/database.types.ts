@@ -141,6 +141,7 @@ export interface Database {
           user_id: string;
           title: string;
           due_date: string | null;
+          due_time: string | null;
           is_completed: boolean;
           created_at: string;
         };
@@ -149,6 +150,7 @@ export interface Database {
           user_id: string;
           title: string;
           due_date?: string | null;
+          due_time?: string | null;
           is_completed?: boolean;
           created_at?: string;
         };
@@ -157,6 +159,7 @@ export interface Database {
           user_id?: string;
           title?: string;
           due_date?: string | null;
+          due_time?: string | null;
           is_completed?: boolean;
           created_at?: string;
         };

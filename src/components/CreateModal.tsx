@@ -23,6 +23,7 @@ export function CreateModal({ open, onClose }: CreateModalProps) {
   const [icon, setIcon] = useState("🏃");
   const [title, setTitle] = useState("");
   const [dueDate, setDueDate] = useState("");
+  const [dueTime, setDueTime] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const nameRef = useRef<HTMLInputElement>(null);
@@ -69,6 +70,7 @@ export function CreateModal({ open, onClose }: CreateModalProps) {
     try {
       const body: Record<string, string> = { title: title.trim() };
       if (dueDate) body.due_date = dueDate;
+      if (dueTime) body.due_time = dueTime;
       await apiFetch("/api/todos", {
         method: "POST",
         body: JSON.stringify(body),
@@ -176,6 +178,15 @@ export function CreateModal({ open, onClose }: CreateModalProps) {
                 type="date"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
+              />
+            </label>
+            <label className="sheet-date-label">
+              <span>{t("taskDueTime")}</span>
+              <input
+                className="sheet-input"
+                type="time"
+                value={dueTime}
+                onChange={(e) => setDueTime(e.target.value)}
               />
             </label>
             {error && <p className="sheet-error">{error}</p>}

@@ -20,5 +20,6 @@ export const BulkCheckinSchema = z.object({
 export const TodoSchema = z.object({
   title: z.string().min(1).max(200),
   due_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  due_time: z.string().regex(/^\d{2}:\d{2}$/).optional(),
   is_completed: z.boolean().optional(),
 });
