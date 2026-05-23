@@ -52,12 +52,15 @@ export async function POST(request: Request) {
       { onConflict: "telegram_id" }
     );
 
-    const appUrl = `https://t.me/${process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME}/${process.env.NEXT_PUBLIC_TELEGRAM_APP_SHORT_NAME}`;
+    const directUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL
+      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+      : `https://t.me/${process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME}/${process.env.NEXT_PUBLIC_TELEGRAM_APP_SHORT_NAME}`;
 
     try {
-      await sendMiniAppButton(chatId, t.botWelcome, t.botOpenApp, appUrl);
-    } catch {
-      await sendMessage(chatId, t.botWelcome + "\n\n" + appUrl);
+      await sendMiniAppButton(chatId, t.botWelcome, t.botOpenApp, directUrl);
+    } catch (e) {
+      console.error("sendMiniAppButton failed:", e);
+      await sendMessage(chatId, t.botWelcome + "\n\n" + directUrl);
     }
 
     return Response.json({ ok: true });
