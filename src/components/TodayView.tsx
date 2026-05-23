@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import confetti from "canvas-confetti";
 import { apiFetch } from "@/lib/apiFetch";
@@ -13,6 +13,7 @@ import {
 } from "@/lib/offlineStore";
 import { useLanguage } from "@/lib/i18n";
 import { HabitSkeleton } from "./HabitSkeleton";
+import { EditHabitSheet } from "./EditHabitSheet";
 
 interface Habit {
   id: string;
@@ -44,6 +45,12 @@ export function TodayView() {
     typeof navigator !== "undefined" ? !navigator.onLine : false
   );
   const [showCelebration, setShowCelebration] = useState(false);
+  const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
+
+  // Swipe state
+  const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
+  const swipeHandled = useRef(false);
 
   const today = new Date().toISOString().slice(0, 10);
 
@@ -168,6 +175,23 @@ export function TodayView() {
     }
   }, [allCompleted, habits]);
 
+  const deleteHabit = useCallback(
+    async (habitId: string) => {
+      haptics.medium();
+      const optimistic = safeHabits.filter((h) => h.id !== habitId);
+      await mutate(`/api/checkins?date=${today}`, optimistic, false);
+      try {
+        await apiFetch(`/api/habits/${habitId}`, { method: "DELETE" });
+        await mutate(`/api/checkins?date=${today}`);
+        await mutate("/api/checkins/stats");
+      } catch {
+        haptics.error();
+        await mutate(`/api/checkins?date=${today}`);
+      }
+    },
+    [mutate, safeHabits, today]
+  );
+
   const saveAll = async () => {
     setSaving(true);
     try {
@@ -222,15 +246,39 @@ export function TodayView() {
         <>
           <ul className="habit-list">
             {habits?.map((habit) => (
-              <li key={habit.id} className="habit-row">
-                <span className="habit-icon">{habit.icon}</span>
-                <span
-                  className={`habit-name ${
-                    isCompleted(habit.id) ? "completed" : ""
-                  }`}
+              <li
+                key={habit.id}
+                className="habit-row"
+                onTouchStart={(e) => {
+                  touchStartX.current = e.touches[0].clientX;
+                  touchStartY.current = e.touches[0].clientY;
+                  swipeHandled.current = false;
+                }}
+                onTouchMove={(e) => {
+                  if (swipeHandled.current) return;
+                  const dx = e.touches[0].clientX - touchStartX.current;
+                  const dy = e.touches[0].clientY - touchStartY.current;
+                  if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)) {
+                    swipeHandled.current = true;
+                    if (dx < -40) deleteHabit(habit.id);
+                  }
+                }}
+              >
+                <button
+                  className="habit-info-btn"
+                  onClick={() => setEditingHabit(habit)}
+                  aria-label={`${t("editHabit")}: ${habit.name}`}
+                  style={{ minHeight: 44 }}
                 >
-                  {habit.name}
-                </span>
+                  <span className="habit-icon">{habit.icon}</span>
+                  <span
+                    className={`habit-name ${
+                      isCompleted(habit.id) ? "completed" : ""
+                    }`}
+                  >
+                    {habit.name}
+                  </span>
+                </button>
                 <button
                   role="checkbox"
                   aria-checked={isCompleted(habit.id)}
@@ -281,6 +329,11 @@ export function TodayView() {
           </button>
         </>
       )}
+
+      <EditHabitSheet
+        habit={editingHabit}
+        onClose={() => setEditingHabit(null)}
+      />
     </div>
   );
 }

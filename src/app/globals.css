@@ -624,6 +624,62 @@ body {
   opacity: 0.6;
 }
 
+.sheet-delete-btn {
+  width: 100%;
+  padding: var(--space-sm) var(--space-lg);
+  background: transparent;
+  color: #e53935;
+  border: 1px solid #e53935;
+  border-radius: var(--radius-sm);
+  font-size: 0.95rem;
+  cursor: pointer;
+  margin-top: var(--space-md);
+}
+
+.delete-confirm {
+  margin-top: var(--space-md);
+  padding: var(--space-sm);
+  background: rgba(229, 57, 53, 0.08);
+  border-radius: var(--radius-sm);
+}
+
+.delete-confirm-text {
+  font-size: 0.9rem;
+  color: var(--color-text);
+  margin-bottom: var(--space-sm);
+  text-align: center;
+}
+
+.sheet-delete-confirm-btn {
+  padding: var(--space-sm) var(--space-lg);
+  background: #e53935;
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.sheet-delete-confirm-btn:disabled {
+  opacity: 0.6;
+}
+
+/* Habit info button (tap to edit) */
+.habit-info-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex: 1;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+  text-align: left;
+  min-width: 0;
+}
+
 /* ── Tasks ── */
 .task-info {
   flex: 1;

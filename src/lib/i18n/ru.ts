@@ -66,6 +66,11 @@ export const ru: Record<keyof typeof en, string> = {
   cancel: "Отмена",
   habitNameLabel: "Название привычки",
   habitIconLabel: "Выберите иконку",
+  editHabit: "Редактировать",
+  deleteHabit: "Удалить привычку",
+  deleteHabitConfirm: "Удалить эту привычку? История отметок будет сохранена.",
+  save: "Сохранить",
+  delete: "Удалить",
 
   // Error screen (shown outside Telegram)
   appTitle: "HabitFlow",

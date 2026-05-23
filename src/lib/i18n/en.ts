@@ -64,6 +64,11 @@ export const en = {
   cancel: "Cancel",
   habitNameLabel: "Habit name",
   habitIconLabel: "Choose icon",
+  editHabit: "Edit habit",
+  deleteHabit: "Delete habit",
+  deleteHabitConfirm: "Delete this habit? Your check-in history will be preserved.",
+  save: "Save",
+  delete: "Delete",
 
   // Error screen (shown outside Telegram)
   appTitle: "HabitFlow",
