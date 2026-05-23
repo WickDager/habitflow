@@ -16,7 +16,17 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const testChatId = url.searchParams.get("test_chat_id");
 
-  if (testChatId || url.searchParams.get("auto_test") !== null) {
+  if (testChatId || url.searchParams.get("auto_test") !== null || url.searchParams.get("list_users") !== null) {
+    if (url.searchParams.get("list_users") !== null) {
+      const sb = serverClient();
+      const { data: users } = await sb
+        .from("users")
+        .select("telegram_id, first_name, chat_id, created_at")
+        .order("created_at", { ascending: false })
+        .limit(20);
+      return Response.json({ users });
+    }
+
     let chatId: number;
     if (testChatId) {
       chatId = parseInt(testChatId);
