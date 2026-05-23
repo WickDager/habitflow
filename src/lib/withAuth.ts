@@ -86,11 +86,18 @@ export function withAuth(handler: Handler) {
           );
 
         const { isValid, user } = validateInitData(initData, botToken);
-        if (!isValid || !user)
+        if (!isValid || !user) {
+          console.error("validateInitData failed:", {
+            initDataLen: initData.length,
+            hasHash: initData.includes("hash="),
+            hasSignature: initData.includes("signature="),
+            params: [...new URLSearchParams(initData).keys()],
+          });
           return NextResponse.json(
             { error: "Invalid init data" },
             { status: 401 },
           );
+        }
         telegramUser = user;
       }
 

@@ -16,6 +16,7 @@ export function validateInitData(
     const hash = params.get("hash");
     if (!hash) return { isValid: false, user: null };
     params.delete("hash");
+    params.delete("signature"); // Telegram Web adds this separately
 
     const checkString = [...params.entries()]
       .sort(([a], [b]) => a.localeCompare(b))
