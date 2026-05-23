@@ -46,6 +46,15 @@ export async function apiFetch<T>(
     );
   }
 
+  console.log("apiFetch sending:", {
+    url,
+    method: options?.method ?? "GET",
+    initDataLen: initData.length,
+    initDataPreview: initData.slice(0, 100),
+    hasHashParam: initData.includes("hash="),
+    hasSignatureParam: initData.includes("signature="),
+  });
+
   const res = await fetch(url, {
     ...options,
     headers: {
