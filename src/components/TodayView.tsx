@@ -36,6 +36,17 @@ interface HabitWithCheckin extends Habit {
 
 type Mood = 1 | 2 | 3;
 
+function CheckMark() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none">
+      <path
+        className="check-path"
+        d="M3 8.5L6.5 12L13 4"
+      />
+    </svg>
+  );
+}
+
 export function TodayView() {
   const { mutate } = useSWRConfig();
   const { t } = useLanguage();
@@ -47,7 +58,6 @@ export function TodayView() {
   const [showCelebration, setShowCelebration] = useState(false);
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
 
-  // Swipe state
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
   const swipeHandled = useRef(false);
@@ -165,12 +175,12 @@ export function TodayView() {
       /* eslint-disable-next-line react-hooks/set-state-in-effect */
       setShowCelebration(true);
       confetti({
-        particleCount: 80,
-        spread: 60,
+        particleCount: 100,
+        spread: 70,
         origin: { x: 0.5, y: 0.5 },
-        colors: ["#5b6ef5", "#e8b86d", "#5fcfa8"],
+        colors: ["#34c759", "#ff9f0a", "#2678b6", "#ff3b30"],
       });
-      const timer = setTimeout(() => setShowCelebration(false), 1500);
+      const timer = setTimeout(() => setShowCelebration(false), 1800);
       return () => clearTimeout(timer);
     }
   }, [allCompleted, habits]);
@@ -241,60 +251,70 @@ export function TodayView() {
       {isLoading ? (
         <HabitSkeleton count={4} />
       ) : showCelebration ? (
-        <div className="celebration">{t("celebration")}</div>
+        <div className="celebration">
+          <span className="celebration-emoji">🎉</span>
+          {t("celebration")}
+        </div>
+      ) : safeHabits.length === 0 ? (
+        <div className="empty-state">
+          <span className="empty-state-emoji">🪴</span>
+          <span className="empty-state-text">{t("noHabitsYet")}</span>
+        </div>
       ) : (
         <>
           <ul className="habit-list">
-            {habits?.map((habit) => (
-              <li
-                key={habit.id}
-                className="habit-row"
-                onTouchStart={(e) => {
-                  touchStartX.current = e.touches[0].clientX;
-                  touchStartY.current = e.touches[0].clientY;
-                  swipeHandled.current = false;
-                }}
-                onTouchMove={(e) => {
-                  if (swipeHandled.current) return;
-                  const dx = e.touches[0].clientX - touchStartX.current;
-                  const dy = e.touches[0].clientY - touchStartY.current;
-                  if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)) {
-                    swipeHandled.current = true;
-                    if (dx < -40) deleteHabit(habit.id);
-                  }
-                }}
-              >
-                <button
-                  className="habit-info-btn"
-                  onClick={() => setEditingHabit(habit)}
-                  aria-label={`${t("editHabit")}: ${habit.name}`}
-                  style={{ minHeight: 44 }}
+            {safeHabits.map((habit) => (
+              <li key={habit.id} className="swipe-wrapper">
+                <div className="swipe-delete-bg">Delete</div>
+                <div
+                  className="habit-row"
+                  onTouchStart={(e) => {
+                    touchStartX.current = e.touches[0].clientX;
+                    touchStartY.current = e.touches[0].clientY;
+                    swipeHandled.current = false;
+                  }}
+                  onTouchMove={(e) => {
+                    if (swipeHandled.current) return;
+                    const dx = e.touches[0].clientX - touchStartX.current;
+                    const dy = e.touches[0].clientY - touchStartY.current;
+                    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)) {
+                      swipeHandled.current = true;
+                      if (dx < -40) deleteHabit(habit.id);
+                    }
+                  }}
                 >
-                  <span className="habit-icon">{habit.icon}</span>
-                  <span
-                    className={`habit-name ${
-                      isCompleted(habit.id) ? "completed" : ""
-                    }`}
+                  <button
+                    className="habit-info-btn"
+                    onClick={() => setEditingHabit(habit)}
+                    aria-label={`${t("editHabit")}: ${habit.name}`}
+                    style={{ minHeight: 44 }}
                   >
-                    {habit.name}
-                  </span>
-                </button>
-                <button
-                  role="checkbox"
-                  aria-checked={isCompleted(habit.id)}
-                  aria-label={`${habit.name}: ${
-                    isCompleted(habit.id)
-                      ? t("habitCompletedLabel")
-                      : t("habitNotCompletedLabel")
-                  }`}
-                  className={`habit-checkbox ${
-                    isCompleted(habit.id) ? "checked" : ""
-                  }`}
-                  onClick={() => toggleHabit(habit.id)}
-                  style={{ minHeight: 44, minWidth: 44 }}
-                >
-                  {isCompleted(habit.id) ? "✓" : ""}
-                </button>
+                    <span className="habit-icon">{habit.icon}</span>
+                    <span
+                      className={`habit-name${
+                        isCompleted(habit.id) ? " completed" : ""
+                      }`}
+                    >
+                      {habit.name}
+                    </span>
+                  </button>
+                  <button
+                    role="checkbox"
+                    aria-checked={isCompleted(habit.id)}
+                    aria-label={`${habit.name}: ${
+                      isCompleted(habit.id)
+                        ? t("habitCompletedLabel")
+                        : t("habitNotCompletedLabel")
+                    }`}
+                    className={`habit-checkbox${
+                      isCompleted(habit.id) ? " checked" : ""
+                    }`}
+                    onClick={() => toggleHabit(habit.id)}
+                    style={{ minHeight: 44, minWidth: 44 }}
+                  >
+                    {isCompleted(habit.id) && <CheckMark />}
+                  </button>
+                </div>
               </li>
             ))}
           </ul>
@@ -306,7 +326,7 @@ export function TodayView() {
                 <button
                   key={m.value}
                   aria-label={t(m.labelKey)}
-                  className={`mood-btn ${mood === m.value ? "selected" : ""}`}
+                  className={`mood-btn${mood === m.value ? " selected" : ""}`}
                   onClick={() => {
                     haptics.select();
                     setMood(m.value);
@@ -319,14 +339,16 @@ export function TodayView() {
             </div>
           </div>
 
-          <button
-            className="save-btn"
-            onClick={saveAll}
-            disabled={saving}
-            style={{ minHeight: 44 }}
-          >
-            {saving ? t("saving") : t("saveCheckin")}
-          </button>
+          <div className="save-btn-wrap">
+            <button
+              className="save-btn"
+              onClick={saveAll}
+              disabled={saving}
+              style={{ minHeight: 50 }}
+            >
+              {saving ? t("saving") : t("saveCheckin")}
+            </button>
+          </div>
         </>
       )}
 

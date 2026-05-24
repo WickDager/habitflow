@@ -187,20 +187,26 @@ function MoodBreakdown({ moods }: { moods: MoodEntry[] }) {
   const total = counts[1] + counts[2] + counts[3];
   if (total === 0) return null;
 
+  const moodBarClass: Record<number, string> = {
+    1: "happy",
+    2: "neutral",
+    3: "sad",
+  };
+
   return (
     <div className="mood-breakdown">
       {[1, 2, 3].map((mood) => {
-        const pct = Math.round((counts[mood] / total) * 100) || 0;
+        const pct = total > 0 ? Math.round((counts[mood] / total) * 100) : 0;
         return (
           <div key={mood} className="mood-breakdown-item">
             <span className="mood-breakdown-emoji">{MOOD_EMOJI[mood]}</span>
             <div className="mood-breakdown-bar-track">
               <div
-                className="mood-breakdown-bar"
+                className={`mood-breakdown-bar ${moodBarClass[mood]}`}
                 style={{ width: `${pct}%` }}
               />
             </div>
-            <span className="mood-breakdown-count">{counts[mood]}</span>
+            <span className="mood-breakdown-pct">{pct}%</span>
           </div>
         );
       })}
@@ -255,13 +261,13 @@ export function StatsView() {
       </div>
 
       <div className="mood-section">
-        <h3>{t("moodTrend")}</h3>
+        <p className="section-label">{t("moodTrend")}</p>
         <MoodChart moods={data.recentMoods} />
         <MoodBreakdown moods={data.recentMoods} />
       </div>
 
       <div className="weekly-section">
-        <h3>{t("thisWeek")}</h3>
+        <p className="section-label">{t("thisWeek")}</p>
         <div
           className="progress-bar"
           role="progressbar"

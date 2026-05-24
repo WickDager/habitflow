@@ -62,6 +62,7 @@ export const en = {
   taskDueDate: "Due date (optional)",
   taskDueTime: "Time (optional)",
   noTasksYet: "No tasks yet. Tap + to create one.",
+  noHabitsYet: "No habits yet. Tap + to create one.",
   cancel: "Cancel",
   habitNameLabel: "Habit name",
   habitIconLabel: "Choose icon",

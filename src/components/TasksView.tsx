@@ -18,6 +18,35 @@ interface Todo {
   created_at: string;
 }
 
+function CheckMark() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none">
+      <path
+        className="check-path"
+        d="M3 8.5L6.5 12L13 4"
+      />
+    </svg>
+  );
+}
+
+function formatDueBadge(date: string | null, time: string | null) {
+  if (!date && !time) return null;
+  const badges: { emoji: string; text: string }[] = [];
+  if (date) {
+    badges.push({
+      emoji: "📅",
+      text: new Date(date + "T00:00:00").toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric",
+      }),
+    });
+  }
+  if (time) {
+    badges.push({ emoji: "🕒", text: time });
+  }
+  return badges;
+}
+
 export function TasksView() {
   const { mutate } = useSWRConfig();
   const { t } = useLanguage();
@@ -78,7 +107,6 @@ export function TasksView() {
     [mutate, todos]
   );
 
-  // Swipe state
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
   const swipeHandled = useRef(false);
@@ -94,82 +122,81 @@ export function TasksView() {
   if (!todos || todos.length === 0) {
     return (
       <div className="today-view">
-        <p className="empty-state">{t("noTasksYet")}</p>
+        <div className="empty-state">
+          <span className="empty-state-emoji">📝</span>
+          <span className="empty-state-text">{t("noTasksYet")}</span>
+        </div>
       </div>
     );
   }
-
-  const formatDue = (date: string | null, time: string | null) => {
-    if (!date && !time) return null;
-    const parts: string[] = [];
-    if (date) {
-      parts.push(
-        new Date(date + "T00:00:00").toLocaleDateString(undefined, {
-          month: "short",
-          day: "numeric",
-        })
-      );
-    }
-    if (time) parts.push(time);
-    return parts.join(" ");
-  };
 
   return (
     <div className="today-view">
       <ul className="habit-list">
         {todos.map((todo) => (
-          <li
-            key={todo.id}
-            className="habit-row"
-            onTouchStart={(e) => {
-              touchStartX.current = e.touches[0].clientX;
-              touchStartY.current = e.touches[0].clientY;
-              swipeHandled.current = false;
-            }}
-            onTouchMove={(e) => {
-              if (swipeHandled.current) return;
-              const dx = e.touches[0].clientX - touchStartX.current;
-              const dy = e.touches[0].clientY - touchStartY.current;
-              if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)) {
-                swipeHandled.current = true;
-                if (dx < -40) deleteTodo(todo.id);
-              }
-            }}
-          >
-            <button
-              className="habit-info-btn"
-              onClick={() => setEditingTask(todo)}
-              aria-label={`${t("editTask")}: ${todo.title}`}
-              style={{ minHeight: 44 }}
+          <li key={todo.id} className="swipe-wrapper">
+            <div className="swipe-delete-bg">Delete</div>
+            <div
+              className="habit-row"
+              style={todo.is_completed ? { opacity: 0.55 } : undefined}
+              onTouchStart={(e) => {
+                touchStartX.current = e.touches[0].clientX;
+                touchStartY.current = e.touches[0].clientY;
+                swipeHandled.current = false;
+              }}
+              onTouchMove={(e) => {
+                if (swipeHandled.current) return;
+                const dx = e.touches[0].clientX - touchStartX.current;
+                const dy = e.touches[0].clientY - touchStartY.current;
+                if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)) {
+                  swipeHandled.current = true;
+                  if (dx < -40) deleteTodo(todo.id);
+                }
+              }}
             >
-              <span className="habit-icon">📝</span>
-              <div className="task-info">
-                <span
-                  className={`habit-name ${todo.is_completed ? "completed" : ""}`}
-                >
-                  {todo.title}
-                </span>
-                {formatDue(todo.due_date, todo.due_time) && (
-                  <span className="task-due">
-                    {formatDue(todo.due_date, todo.due_time)}
+              <button
+                className="habit-info-btn"
+                onClick={() => setEditingTask(todo)}
+                aria-label={`${t("editTask")}: ${todo.title}`}
+                style={{ minHeight: 44 }}
+              >
+                <span className="habit-icon">📝</span>
+                <div className="task-info">
+                  <span
+                    className={`habit-name${
+                      todo.is_completed ? " completed" : ""
+                    }`}
+                  >
+                    {todo.title}
                   </span>
-                )}
-              </div>
-            </button>
-            <button
-              role="checkbox"
-              aria-checked={todo.is_completed}
-              aria-label={`${todo.title}: ${
-                todo.is_completed
-                  ? t("habitCompletedLabel")
-                  : t("habitNotCompletedLabel")
-              }`}
-              className={`habit-checkbox ${todo.is_completed ? "checked" : ""}`}
-              onClick={() => toggleTodo(todo)}
-              style={{ minHeight: 44, minWidth: 44 }}
-            >
-              {todo.is_completed ? "✓" : ""}
-            </button>
+                  <span className="task-due">
+                    {formatDueBadge(todo.due_date, todo.due_time)?.map(
+                      (b, i) => (
+                        <span key={i} className="task-due-badge">
+                          {b.emoji} {b.text}
+                        </span>
+                      )
+                    )}
+                  </span>
+                </div>
+              </button>
+              <button
+                role="checkbox"
+                aria-checked={todo.is_completed}
+                aria-label={`${todo.title}: ${
+                  todo.is_completed
+                    ? t("habitCompletedLabel")
+                    : t("habitNotCompletedLabel")
+                }`}
+                className={`habit-checkbox${
+                  todo.is_completed ? " checked" : ""
+                }`}
+                onClick={() => toggleTodo(todo)}
+                style={{ minHeight: 44, minWidth: 44 }}
+              >
+                {todo.is_completed && <CheckMark />}
+              </button>
+            </div>
           </li>
         ))}
       </ul>

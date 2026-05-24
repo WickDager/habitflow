@@ -64,6 +64,7 @@ export const ru: Record<keyof typeof en, string> = {
   taskDueDate: "Срок (необязательно)",
   taskDueTime: "Время (необязательно)",
   noTasksYet: "Нет задач. Нажмите + чтобы создать.",
+  noHabitsYet: "Нет привычек. Нажмите + чтобы создать.",
   cancel: "Отмена",
   habitNameLabel: "Название привычки",
   habitIconLabel: "Выберите иконку",
