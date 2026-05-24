@@ -1,31 +1,31 @@
 @import "tailwindcss";
 
-/* ── Telegram Theme Variables ── */
+/* ── Theme: light (default / explicit) ── */
 :root,
-.light {
-  --tg-bg: var(--tg-theme-bg-color, #ffffff);
-  --tg-surface: var(--tg-theme-secondary-bg-color, #f5f5f5);
-  --tg-text: var(--tg-theme-text-color, #1a1a1a);
-  --tg-hint: var(--tg-theme-hint-color, #8e8e93);
-  --tg-link: var(--tg-theme-link-color, #2678b6);
-  --tg-button: var(--tg-theme-button-color, #2678b6);
-  --tg-btn-text: var(--tg-theme-button-text-color, #ffffff);
-  --tg-accent: var(--tg-theme-accent-text-color, #2678b6);
-  --tg-separator: var(--tg-theme-section-separator-color, #e5e5ea);
+:root.light {
+  --tg-theme-bg-color: #ffffff;
+  --tg-theme-text-color: #222222;
+  --tg-theme-button-color: #007aff;
+  --tg-theme-button-text-color: #ffffff;
+  --tg-theme-secondary-bg-color: #f1f1f2;
+  --tg-theme-hint-color: #99999f;
+  --tg-theme-destructive-color: #ff3b30;
+  --tg-theme-success-color: #34c759;
+  --tg-theme-warning-color: #ff9f0a;
 
-  --color-bg: var(--tg-bg);
-  --color-surface: var(--tg-surface);
-  --color-text: var(--tg-text);
-  --color-muted: var(--tg-hint);
-  --color-primary: var(--tg-button);
-  --color-primary-text: var(--tg-btn-text);
-  --color-border: var(--tg-separator);
+  --color-bg: var(--tg-theme-bg-color);
+  --color-surface: var(--tg-theme-secondary-bg-color);
+  --color-text: var(--tg-theme-text-color);
+  --color-muted: var(--tg-theme-hint-color);
+  --color-primary: var(--tg-theme-button-color);
+  --color-primary-text: var(--tg-theme-button-text-color);
+  --color-border: color-mix(in srgb, var(--tg-theme-secondary-bg-color) 80%, transparent);
 
-  --color-mood-happy: #34c759;
-  --color-mood-neutral: #ff9f0a;
-  --color-mood-sad: #ff3b30;
-  --color-delete: #e53935;
-  --color-delete-bg: rgba(229, 57, 53, 0.1);
+  --color-mood-happy: var(--tg-theme-success-color);
+  --color-mood-neutral: var(--tg-theme-warning-color);
+  --color-mood-sad: var(--tg-theme-destructive-color);
+  --color-delete: var(--tg-theme-destructive-color);
+  --color-delete-bg: rgba(255, 59, 48, 0.1);
 
   --space-xs: 4px;
   --space-sm: 8px;
@@ -38,49 +38,63 @@
   --radius-lg: 20px;
   --radius-full: 9999px;
 
-  --font-body: -apple-system, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  --font-body: system-ui, -apple-system, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
   --font-mono: "SF Mono", "Fira Code", monospace;
+
+  color-scheme: light;
 }
 
-.dark {
-  --tg-bg: var(--tg-theme-bg-color, #1c1c1e);
-  --tg-surface: var(--tg-theme-secondary-bg-color, #2c2c2e);
-  --tg-text: var(--tg-theme-text-color, #f5f5f5);
-  --tg-hint: var(--tg-theme-hint-color, #8e8e93);
-  --tg-separator: var(--tg-theme-section-separator-color, #38383a);
+/* ── Theme: dark (explicit override) ── */
+:root.dark {
+  --tg-theme-bg-color: #1c1c1e;
+  --tg-theme-text-color: #ffffff;
+  --tg-theme-button-color: #0a84ff;
+  --tg-theme-button-text-color: #ffffff;
+  --tg-theme-secondary-bg-color: #2c2c2e;
+  --tg-theme-hint-color: #8e8e93;
 
-  --color-bg: var(--tg-bg);
-  --color-surface: var(--tg-surface);
-  --color-text: var(--tg-text);
-  --color-muted: var(--tg-hint);
-  --color-border: var(--tg-separator);
+  --color-bg: var(--tg-theme-bg-color);
+  --color-surface: var(--tg-theme-secondary-bg-color);
+  --color-text: var(--tg-theme-text-color);
+  --color-muted: var(--tg-theme-hint-color);
+  --color-primary: var(--tg-theme-button-color);
+  --color-primary-text: var(--tg-theme-button-text-color);
+  --color-border: color-mix(in srgb, var(--tg-theme-secondary-bg-color) 80%, transparent);
 
   --color-mood-happy: #30d158;
   --color-mood-neutral: #ff9f0a;
   --color-mood-sad: #ff453a;
   --color-delete: #ff453a;
   --color-delete-bg: rgba(255, 69, 58, 0.12);
+
+  color-scheme: dark;
 }
 
+/* ── Auto dark if system prefers it and no light class ── */
 @media (prefers-color-scheme: dark) {
-  :root:not(.light) {
-    --tg-bg: var(--tg-theme-bg-color, #1c1c1e);
-    --tg-surface: var(--tg-theme-secondary-bg-color, #2c2c2e);
-    --tg-text: var(--tg-theme-text-color, #f5f5f5);
-    --tg-hint: var(--tg-theme-hint-color, #8e8e93);
-    --tg-separator: var(--tg-theme-section-separator-color, #38383a);
+  :root:not(.light):not(.dark) {
+    --tg-theme-bg-color: #1c1c1e;
+    --tg-theme-text-color: #ffffff;
+    --tg-theme-button-color: #0a84ff;
+    --tg-theme-button-text-color: #ffffff;
+    --tg-theme-secondary-bg-color: #2c2c2e;
+    --tg-theme-hint-color: #8e8e93;
 
-    --color-bg: var(--tg-bg);
-    --color-surface: var(--tg-surface);
-    --color-text: var(--tg-text);
-    --color-muted: var(--tg-hint);
-    --color-border: var(--tg-separator);
+    --color-bg: var(--tg-theme-bg-color);
+    --color-surface: var(--tg-theme-secondary-bg-color);
+    --color-text: var(--tg-theme-text-color);
+    --color-muted: var(--tg-theme-hint-color);
+    --color-primary: var(--tg-theme-button-color);
+    --color-primary-text: var(--tg-theme-button-text-color);
+    --color-border: color-mix(in srgb, var(--tg-theme-secondary-bg-color) 80%, transparent);
 
     --color-mood-happy: #30d158;
     --color-mood-neutral: #ff9f0a;
     --color-mood-sad: #ff453a;
     --color-delete: #ff453a;
     --color-delete-bg: rgba(255, 69, 58, 0.12);
+
+    color-scheme: dark;
   }
 }
 
@@ -90,11 +104,12 @@
 }
 
 body {
-  background: var(--color-bg);
+  background-color: var(--color-bg);
   color: var(--color-text);
   font-family: var(--font-body);
-  overflow-y: auto;
+  margin: 0;
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* ── Tap animation ── */

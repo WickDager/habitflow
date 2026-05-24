@@ -13,10 +13,10 @@ import { useLanguage } from "@/lib/i18n";
 type Tab = "today" | "tasks" | "stats";
 
 function getTheme(): "light" | "dark" {
-  if (typeof window === "undefined") return "light";
+  if (typeof window === "undefined") return "dark";
   const stored = localStorage.getItem("habitflow-theme");
   if (stored === "light" || stored === "dark") return stored;
-  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  return "dark";
 }
 
 function applyTheme(theme: "light" | "dark") {
@@ -39,6 +39,7 @@ export default function Home() {
 
   useEffect(() => {
     applyTheme(theme);
+    localStorage.setItem("habitflow-theme", theme);
   }, [theme]);
 
   useEffect(() => {
@@ -49,12 +50,7 @@ export default function Home() {
   }, [tab]);
 
   const toggleTheme = useCallback(() => {
-    setTheme((prev) => {
-      const next = prev === "dark" ? "light" : "dark";
-      applyTheme(next);
-      localStorage.setItem("habitflow-theme", next);
-      return next;
-    });
+    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
   }, []);
 
   if (!checked) {
@@ -145,7 +141,7 @@ export default function Home() {
         <StatsView />
       )}
 
-      <FAB onClick={() => setModalOpen(true)} label={t("newHabit")} />
+      {tab === "tasks" && <FAB onClick={() => setModalOpen(true)} label={t("newHabit")} />}
       <CreateModal key={modalOpen ? "1" : "0"} open={modalOpen} onClose={() => setModalOpen(false)} />
     </div>
   );

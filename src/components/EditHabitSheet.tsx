@@ -50,9 +50,10 @@ export function EditHabitSheet({ habit, onClose }: EditHabitSheetProps) {
       const today = new Date().toISOString().slice(0, 10);
       await mutate(`/api/checkins?date=${today}`);
       onClose();
-    } catch {
+    } catch (err) {
       haptics.error();
-      setError(t("saveFailed"));
+      const msg = err instanceof Error ? err.message : "";
+      setError(msg.includes("HABIT_LIMIT") ? t("saveFailed") : t("saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -68,9 +69,10 @@ export function EditHabitSheet({ habit, onClose }: EditHabitSheetProps) {
       await mutate(`/api/checkins?date=${today}`);
       await mutate("/api/checkins/stats");
       onClose();
-    } catch {
+    } catch (err) {
       haptics.error();
       setError(t("saveFailed"));
+      console.error("Delete habit failed:", err);
     } finally {
       setDeleting(false);
     }
