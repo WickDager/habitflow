@@ -2,6 +2,8 @@ import { serverClient } from "@/lib/supabase";
 import {
   sendMessage,
   sendMiniAppButton,
+  sendPhotoWithButton,
+  sendAnimationWithButton,
   answerCallbackQuery,
 } from "@/lib/telegram";
 import { en } from "@/lib/i18n/en";
@@ -114,10 +116,18 @@ export async function POST(request: Request) {
     );
 
     try {
-      await sendMiniAppButton(chatId, t.botWelcome, t.botOpenApp);
+      const photoUrl = process.env.WELCOME_PHOTO_URL;
+      const gifUrl = process.env.WELCOME_GIF_URL;
+      if (photoUrl) {
+        await sendPhotoWithButton(chatId, photoUrl, t.botWelcome, t.botOpenApp);
+      } else if (gifUrl) {
+        await sendAnimationWithButton(chatId, gifUrl, t.botWelcome, t.botOpenApp);
+      } else {
+        await sendMiniAppButton(chatId, t.botWelcome, t.botOpenApp);
+      }
     } catch (e) {
-      console.error("sendMiniAppButton failed:", e);
-      await sendMessage(chatId, t.botWelcome + "\n\n" + "https://habitflow-pi-ten.vercel.app");
+      console.error("send welcome failed:", e);
+      await sendMessage(chatId, t.botWelcome + "\n\n" + (process.env.NEXT_PUBLIC_APP_URL || "https://habitflow-pi-ten.vercel.app"));
     }
 
     return Response.json({ ok: true });

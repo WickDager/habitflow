@@ -43,7 +43,7 @@ export const en = {
 
   // Bot messages
   botWelcome:
-    "Track your daily habits in under 10 seconds.\n\nTap below to open HabitFlow.",
+    "Welcome to HabitFlow — your daily routine, simplified.\n\nSmall habits, big results. Track what matters in seconds, stay consistent, and watch your streaks grow.\n\nTap below to get started! 🚀",
   botOpenApp: "Open HabitFlow",
   botReminderSettings: "Reminder settings:",
   botEnableReminders: "Enable reminders",

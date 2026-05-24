@@ -29,6 +29,70 @@ export async function sendMessage(
   });
 }
 
+export async function sendPhotoWithButton(
+  chatId: number,
+  photoUrl: string,
+  caption: string,
+  buttonLabel: string
+) {
+  const productionDomain = process.env.NEXT_PUBLIC_APP_URL
+    ? process.env.NEXT_PUBLIC_APP_URL
+    : process.env.VERCEL_PROJECT_PRODUCTION_URL
+      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+      : "https://habitflow-pi-ten.vercel.app";
+
+  const appUrl = productionDomain.replace(/^https?:\/\//, "https://");
+
+  return tgFetch("sendPhoto", {
+    chat_id: chatId,
+    photo: photoUrl,
+    caption,
+    parse_mode: "HTML",
+    reply_markup: {
+      inline_keyboard: [
+        [
+          {
+            text: buttonLabel,
+            web_app: { url: appUrl },
+          },
+        ],
+      ],
+    },
+  });
+}
+
+export async function sendAnimationWithButton(
+  chatId: number,
+  gifUrl: string,
+  caption: string,
+  buttonLabel: string
+) {
+  const productionDomain = process.env.NEXT_PUBLIC_APP_URL
+    ? process.env.NEXT_PUBLIC_APP_URL
+    : process.env.VERCEL_PROJECT_PRODUCTION_URL
+      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+      : "https://habitflow-pi-ten.vercel.app";
+
+  const appUrl = productionDomain.replace(/^https?:\/\//, "https://");
+
+  return tgFetch("sendAnimation", {
+    chat_id: chatId,
+    animation: gifUrl,
+    caption,
+    parse_mode: "HTML",
+    reply_markup: {
+      inline_keyboard: [
+        [
+          {
+            text: buttonLabel,
+            web_app: { url: appUrl },
+          },
+        ],
+      ],
+    },
+  });
+}
+
 export async function sendMiniAppButton(
   chatId: number,
   text: string,
