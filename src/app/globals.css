@@ -355,18 +355,26 @@ body {
 /* ── Mood Picker ── */
 .mood-picker {
   margin-top: var(--space-lg);
+  background: color-mix(in srgb, var(--color-surface) 50%, transparent);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
 }
 
 .mood-label {
-  display: block;
   font-size: 0.9rem;
-  margin-bottom: var(--space-sm);
   color: var(--color-muted);
+  font-weight: 600;
+  text-align: center;
 }
 
 .mood-options {
   display: flex;
-  gap: var(--space-md);
+  gap: var(--space-lg);
+  justify-content: center;
 }
 
 .mood-btn {
