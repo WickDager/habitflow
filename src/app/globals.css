@@ -130,23 +130,11 @@ body {
   position: sticky;
   top: 0;
   z-index: 50;
-  background: rgba(255,255,255,0.8);
+  background: color-mix(in srgb, var(--color-bg) 92%, transparent);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   padding: var(--space-sm) var(--space-md);
   padding-top: calc(var(--space-sm) + env(safe-area-inset-top, 0));
-  border-bottom: 1px solid var(--color-border);
-}
-
-:root:not(.light) .top-nav,
-.dark .top-nav {
-  background: rgba(28,28,30,0.8);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not(.light) .top-nav {
-    background: rgba(28,28,30,0.8);
-  }
 }
 
 .nav-header {
@@ -190,6 +178,7 @@ body {
 .tab-bar {
   display: flex;
   position: relative;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 50%, transparent);
 }
 
 .tab-btn {
@@ -197,7 +186,6 @@ body {
   min-height: 40px;
   background: transparent;
   border: none;
-  border-bottom: 1px solid var(--color-border);
   color: var(--color-muted);
   font-size: 0.9rem;
   font-weight: 600;
@@ -205,10 +193,6 @@ body {
   transition: color 0.25s, transform 0.15s;
   position: relative;
   padding: var(--space-xs) 0;
-}
-
-.tab-btn:not(:last-child) {
-  border-right: 1px solid var(--color-border);
 }
 
 .tab-btn:active {
