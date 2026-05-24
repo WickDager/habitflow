@@ -23,9 +23,14 @@ export const en = {
 
   // StatsView
   statsError: "Failed to load stats.",
-  moodTrend: "Mood trend",
-  thisWeek: "This week",
-  habitsCompleted: "{{count}} of {{total}} habits completed this week",
+  moodTrend: "Mood Trend",
+  moodBreakdown: "Mood Breakdown",
+  thisWeek: "Weekly Progress",
+  outOf: "of",
+  habitsCompleted: "{{count}} of {{total}} completed ({{pct}}%)",
+  bestStreak: "best streak",
+  totalCheckins: "total check-ins",
+  perfectWeek: "All done! 100% this week.",
   streakDays: "days",
 
   // Mood trend descriptions (for SVG aria-label)
@@ -34,7 +39,7 @@ export const en = {
   moodDescSad: "sad",
   moodTrendLabel: "Mood trend (last 7 days): {{summary}}",
   noMoodData: "No mood data yet. Log your mood when saving habits.",
-  noStreaksYet: "Complete a habit to start a streak.",
+  noStreaksYet: "Complete a habit to start your streak.",
 
   // Bot messages
   botWelcome:

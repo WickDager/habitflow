@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { TodayView } from "@/components/TodayView";
 import { TasksView } from "@/components/TasksView";
 import { StatsView } from "@/components/StatsView";
@@ -28,6 +28,9 @@ export default function Home() {
   const [tab, setTab] = useState<Tab>("today");
   const [modalOpen, setModalOpen] = useState(false);
   const [theme, setTheme] = useState<"light" | "dark">(() => getTheme());
+  const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
+
+  const tabRefs = useRef<Record<Tab, HTMLButtonElement | null>>({ today: null, tasks: null, stats: null });
 
   const { t } = useLanguage();
   const { isReady, checked } = useTelegram();
@@ -37,6 +40,13 @@ export default function Home() {
   useEffect(() => {
     applyTheme(theme);
   }, [theme]);
+
+  useEffect(() => {
+    const activeEl = tabRefs.current[tab];
+    if (activeEl) {
+      setIndicatorStyle({ left: activeEl.offsetLeft, width: activeEl.offsetWidth });
+    }
+  }, [tab]);
 
   const toggleTheme = useCallback(() => {
     setTheme((prev) => {
@@ -94,6 +104,7 @@ export default function Home() {
 
         <div className="tab-bar">
           <button
+            ref={(el) => { tabRefs.current.today = el; }}
             className={`tab-btn${tab === "today" ? " active" : ""}`}
             onClick={() => setTab("today")}
             aria-label={t("ariaToday")}
@@ -102,6 +113,7 @@ export default function Home() {
             {t("tabToday")}
           </button>
           <button
+            ref={(el) => { tabRefs.current.tasks = el; }}
             className={`tab-btn${tab === "tasks" ? " active" : ""}`}
             onClick={() => setTab("tasks")}
             aria-label={t("ariaTasks")}
@@ -110,6 +122,7 @@ export default function Home() {
             {t("tabTasks")}
           </button>
           <button
+            ref={(el) => { tabRefs.current.stats = el; }}
             className={`tab-btn${tab === "stats" ? " active" : ""}`}
             onClick={() => setTab("stats")}
             aria-label={t("ariaStats")}
@@ -117,6 +130,10 @@ export default function Home() {
           >
             {t("tabStats")}
           </button>
+          <div
+            className="tab-indicator"
+            style={{ left: `${indicatorStyle.left}px`, width: `${indicatorStyle.width}px` }}
+          />
         </div>
       </nav>
 

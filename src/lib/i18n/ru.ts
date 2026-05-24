@@ -25,9 +25,14 @@ export const ru: Record<keyof typeof en, string> = {
 
   // StatsView
   statsError: "Не удалось загрузить статистику.",
-  moodTrend: "Настроение",
-  thisWeek: "Эта неделя",
-  habitsCompleted: "{{count}} из {{total}} привычек выполнено на этой неделе",
+  moodTrend: "График настроения",
+  moodBreakdown: "Общий фон",
+  thisWeek: "Прогресс за неделю",
+  outOf: "из",
+  habitsCompleted: "{{count}} из {{total}} выполнено ({{pct}}%)",
+  bestStreak: "лучшая серия",
+  totalCheckins: "всего отметок",
+  perfectWeek: "Идеальная неделя! 100%.",
   streakDays: "дн",
 
   // Mood trend descriptions (for SVG aria-label)
@@ -36,7 +41,7 @@ export const ru: Record<keyof typeof en, string> = {
   moodDescSad: "плохо",
   moodTrendLabel: "Настроение (последние 7 дней): {{summary}}",
   noMoodData: "Нет данных о настроении. Отмечайте настроение при сохранении привычек.",
-  noStreaksYet: "Выполните привычку, чтобы начать серию.",
+  noStreaksYet: "Выполните привычку, чтобы начать свою серию.",
 
   // Bot messages
   botWelcome:

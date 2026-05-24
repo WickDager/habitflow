@@ -197,34 +197,36 @@ body {
   min-height: 40px;
   background: transparent;
   border: none;
+  border-bottom: 1px solid var(--color-border);
   color: var(--color-muted);
   font-size: 0.9rem;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
-  transition: color 0.2s;
+  transition: color 0.25s, transform 0.15s;
   position: relative;
   padding: var(--space-xs) 0;
+}
+
+.tab-btn:not(:last-child) {
+  border-right: 1px solid var(--color-border);
+}
+
+.tab-btn:active {
+  transform: scale(0.97);
 }
 
 .tab-btn.active {
   color: var(--color-primary);
 }
 
-.tab-btn::after {
-  content: "";
+.tab-indicator {
   position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%) scaleX(0);
-  width: 24px;
+  bottom: -1px;
+  left: 0;
   height: 3px;
-  border-radius: 2px;
-  background: var(--color-primary);
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.tab-btn.active::after {
-  transform: translateX(-50%) scaleX(1);
+  background-color: var(--color-primary);
+  border-radius: 2px 2px 0 0;
+  transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* ── Today View ── */
@@ -371,21 +373,30 @@ body {
   min-width: 56px;
   min-height: 56px;
   border-radius: 50%;
-  border: 3px solid transparent;
-  background: var(--color-surface);
-  font-size: 1.6rem;
+  border: none;
+  background: transparent;
+  font-size: 2rem;
   cursor: pointer;
-  transition: transform 0.15s, border-color 0.2s, box-shadow 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s, filter 0.2s, opacity 0.2s, box-shadow 0.2s;
 }
 
 .mood-btn:active {
-  transform: scale(0.92);
+  transform: scale(0.9);
+}
+
+.mood-btn:not(.selected) {
+  filter: grayscale(80%);
+  opacity: 0.55;
 }
 
 .mood-btn.selected {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 4px rgba(38,120,182,0.15);
-  transform: scale(1.08);
+  filter: grayscale(0%);
+  box-shadow: 0 0 0 4px var(--color-primary);
+  background: var(--color-surface);
+  transform: scale(1.05);
 }
 
 /* ── Save Button ── */
@@ -402,11 +413,12 @@ body {
   background: var(--color-primary);
   color: var(--color-primary-text);
   border: none;
-  border-radius: var(--radius-lg);
-  font-size: 1.05rem;
+  border-radius: 20px;
+  font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: opacity 0.2s, transform 0.15s;
+  transition: opacity 0.15s, transform 0.15s;
+  padding: 16px;
 }
 
 .save-btn:active {
@@ -491,26 +503,44 @@ body {
   border-radius: var(--radius-md);
   padding: var(--space-md);
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   border: 1px solid var(--color-border);
 }
 
-.streak-header {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-xs);
-  font-size: 1.6rem;
+.streak-emoji {
+  font-size: 2rem;
+  margin-bottom: var(--space-xs);
+}
+
+.streak-number {
+  font-size: 1.5rem;
   font-weight: 700;
+  color: var(--color-text);
 }
 
-.streak-icon {
-  font-size: 1.3rem;
-}
-
-.streak-unit {
-  font-size: 0.8rem;
+.streak-label {
+  font-size: 0.75rem;
   color: var(--color-muted);
-  font-weight: 400;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+.stats-card {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.stats-card-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0 0 16px 0;
 }
 
 .mood-section,
@@ -531,10 +561,6 @@ body {
 .mood-chart {
   width: 100%;
   height: auto;
-  background: var(--color-surface);
-  border-radius: var(--radius-md);
-  padding: var(--space-sm);
-  border: 1px solid var(--color-border);
 }
 
 .mood-dot {
@@ -612,8 +638,27 @@ body {
 .progress-fill {
   height: 100%;
   border-radius: 4px;
-  background: linear-gradient(90deg, var(--color-primary), color-mix(in srgb, var(--color-primary) 70%, #34c759));
-  transition: width 0.6s ease-out;
+  background: var(--color-primary);
+  transition: width 0.8s ease-out;
+  position: relative;
+}
+
+.progress-fill-striped {
+  position: relative;
+  overflow: hidden;
+}
+
+.progress-fill-striped::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 10px,
+    rgba(255,255,255,0.15) 10px,
+    rgba(255,255,255,0.15) 20px
+  );
 }
 
 .progress-label {

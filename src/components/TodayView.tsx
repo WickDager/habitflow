@@ -58,9 +58,10 @@ export function TodayView() {
   const [showCelebration, setShowCelebration] = useState(false);
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
 
-  const touchStartX = useRef(0);
-  const touchStartY = useRef(0);
-  const swipeHandled = useRef(false);
+  const swipeRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const swipeStartX = useRef(0);
+  const swipeCurrentX = useRef(0);
+  const swipeActiveId = useRef<string | null>(null);
 
   const today = new Date().toISOString().slice(0, 10);
 
@@ -257,7 +258,7 @@ export function TodayView() {
         </div>
       ) : safeHabits.length === 0 ? (
         <div className="empty-state">
-          <span className="empty-state-emoji">🪴</span>
+          <span className="empty-state-emoji">🌱</span>
           <span className="empty-state-text">{t("noHabitsYet")}</span>
         </div>
       ) : (
@@ -265,21 +266,32 @@ export function TodayView() {
           <ul className="habit-list">
             {safeHabits.map((habit) => (
               <li key={habit.id} className="swipe-wrapper">
-                <div className="swipe-delete-bg">Delete</div>
+                <div className="swipe-delete-bg" onClick={() => deleteHabit(habit.id)}>Delete</div>
                 <div
                   className="habit-row"
+                  ref={(el) => { if (el) swipeRefs.current.set(habit.id, el); }}
                   onTouchStart={(e) => {
-                    touchStartX.current = e.touches[0].clientX;
-                    touchStartY.current = e.touches[0].clientY;
-                    swipeHandled.current = false;
+                    swipeStartX.current = e.touches[0].clientX;
+                    swipeActiveId.current = habit.id;
                   }}
                   onTouchMove={(e) => {
-                    if (swipeHandled.current) return;
-                    const dx = e.touches[0].clientX - touchStartX.current;
-                    const dy = e.touches[0].clientY - touchStartY.current;
-                    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)) {
-                      swipeHandled.current = true;
-                      if (dx < -40) deleteHabit(habit.id);
+                    if (swipeActiveId.current !== habit.id) return;
+                    let diff = e.touches[0].clientX - swipeStartX.current;
+                    if (diff > 0) diff = 0;
+                    if (diff < -100) diff = -100;
+                    swipeCurrentX.current = diff;
+                    const el = swipeRefs.current.get(habit.id);
+                    if (el) el.style.transform = `translateX(${diff}px)`;
+                  }}
+                  onTouchEnd={() => {
+                    if (swipeActiveId.current !== habit.id) return;
+                    swipeActiveId.current = null;
+                    const el = swipeRefs.current.get(habit.id);
+                    if (swipeCurrentX.current < -50) {
+                      if (el) el.style.transform = "translateX(-80px)";
+                    } else {
+                      if (el) el.style.transform = "translateX(0)";
+                      swipeCurrentX.current = 0;
                     }
                   }}
                 >

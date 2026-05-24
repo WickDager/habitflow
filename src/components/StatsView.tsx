@@ -237,52 +237,86 @@ export function StatsView() {
     );
   if (!data) return null;
 
+  const activeStreaks = (data.streaks ?? []).filter(
+    (s) => (s.total_completions ?? 0) > 0
+  );
+  const bestStreak =
+    activeStreaks.length > 0
+      ? Math.max(...activeStreaks.map((s) => s.total_completions ?? 0))
+      : 0;
+  const totalCheckins = activeStreaks.reduce(
+    (sum, s) => sum + (s.total_completions ?? 0),
+    0
+  );
+
   const totalWeekly = data.weekly.length;
   const completedWeekly = data.weekly.filter((w) => w.completed).length;
   const weeklyPct =
-    totalWeekly > 0 ? (completedWeekly / totalWeekly) * 100 : 0;
+    totalWeekly > 0 ? Math.round((completedWeekly / totalWeekly) * 100) : 0;
+  const isPerfectWeek = totalWeekly > 0 && completedWeekly === totalWeekly;
 
   return (
     <div className="stats-view">
       <div className="streak-grid">
-        {data.streaks.length === 0 ? (
-          <p className="muted-text">{t("noStreaksYet")}</p>
-        ) : (
-          data.streaks.map((s) => (
-            <div key={s.habit_id} className="streak-card">
-              <div className="streak-header">
-                <span className="streak-icon">🔥</span>
-                <AnimatedNumber value={s.total_completions ?? 0} />
-                <span className="streak-unit">{t("streakDays")}</span>
-              </div>
+        {activeStreaks.length === 0 && totalCheckins === 0 ? (
+          <div className="streak-card" style={{ gridColumn: "1 / -1" }}>
+            <div className="empty-state" style={{ padding: "var(--space-md) 0" }}>
+              <span className="empty-state-emoji" style={{ fontSize: "2.5rem" }}>🔥</span>
+              <span className="empty-state-text">{t("noStreaksYet")}</span>
             </div>
-          ))
+          </div>
+        ) : (
+          <>
+            <div className="streak-card">
+              <span className="streak-emoji">🔥</span>
+              <span className="streak-number">
+                <AnimatedNumber value={bestStreak} />
+              </span>
+              <span className="streak-label">{t("bestStreak")}</span>
+            </div>
+            <div className="streak-card">
+              <span className="streak-emoji">🏆</span>
+              <span className="streak-number">
+                <AnimatedNumber value={totalCheckins} />
+              </span>
+              <span className="streak-label">{t("totalCheckins")}</span>
+            </div>
+          </>
         )}
       </div>
 
-      <div className="mood-section">
-        <p className="section-label">{t("moodTrend")}</p>
+      <div className="stats-card">
+        <h2 className="stats-card-title">{t("moodTrend")}</h2>
         <MoodChart moods={data.recentMoods} />
+        <p className="section-label" style={{ marginTop: 16, marginBottom: 8 }}>{t("moodBreakdown")}</p>
         <MoodBreakdown moods={data.recentMoods} />
       </div>
 
-      <div className="weekly-section">
-        <p className="section-label">{t("thisWeek")}</p>
+      <div className="stats-card">
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <h2 className="stats-card-title" style={{ margin: 0 }}>{t("thisWeek")}</h2>
+          <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--color-primary)" }}>
+            {completedWeekly} <span style={{ fontWeight: 400, color: "var(--color-muted)" }}>{t("outOf")}</span> {totalWeekly}
+          </span>
+        </div>
         <div
           className="progress-bar"
+          style={{ height: 16 }}
           role="progressbar"
           aria-valuenow={completedWeekly}
           aria-valuemin={0}
           aria-valuemax={totalWeekly}
         >
           <div
-            className="progress-fill"
+            className="progress-fill progress-fill-striped"
             style={{ width: `${weeklyPct}%` }}
           />
         </div>
-        <p className="progress-label">
-          {t("habitsCompleted", { count: completedWeekly, total: totalWeekly })}
-        </p>
+        {isPerfectWeek && (
+          <p className="progress-label" style={{ marginTop: 8, fontWeight: 600, color: "var(--color-mood-happy)" }}>
+            {t("perfectWeek")}
+          </p>
+        )}
       </div>
     </div>
   );
