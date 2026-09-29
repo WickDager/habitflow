@@ -85,16 +85,23 @@ export function withAuth(handler: Handler) {
             { status: 500 },
           );
 
-        const { isValid, user } = validateInitData(initData, botToken);
+        const { isValid, user, reason } = validateInitData(initData, botToken);
         if (!isValid || !user) {
           console.error("validateInitData failed:", {
+            reason,
             initDataLen: initData.length,
             hasHash: initData.includes("hash="),
             hasSignature: initData.includes("signature="),
             params: [...new URLSearchParams(initData).keys()],
           });
           return NextResponse.json(
-            { error: "Invalid init data" },
+            {
+              // Distinguishable so the client can prompt a reopen instead of
+              // showing a generic failure. Only reachable with a valid HMAC
+              // that is merely old, so this leaks nothing to a forger.
+              error:
+                reason === "EXPIRED" ? "INIT_DATA_EXPIRED" : "Invalid init data",
+            },
             { status: 401 },
           );
         }
