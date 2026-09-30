@@ -5,6 +5,7 @@ import { useSWRConfig } from "swr";
 import { apiFetch } from "@/lib/apiFetch";
 import { haptics } from "@/lib/haptics";
 import { useLanguage } from "@/lib/i18n";
+import { todayLocal } from "@/lib/dates";
 
 type CreateType = "habit" | "task" | null;
 
@@ -53,7 +54,10 @@ export function CreateModal({ open, onClose }: CreateModalProps) {
         body: JSON.stringify({ name: name.trim(), icon }),
       });
       haptics.success();
-      await mutate("/api/checkins?date=" + new Date().toISOString().slice(0, 10));
+      // todayLocal(), not the UTC day: this string is an SWR cache key, and
+      // the Today view fetches with its own local date. A UTC key silently
+      // misses the cache and leaves the new habit invisible until reload.
+      await mutate("/api/checkins?date=" + todayLocal());
       onClose();
     } catch {
       haptics.error();

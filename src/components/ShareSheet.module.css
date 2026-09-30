@@ -1,0 +1,249 @@
+/* Accountability-partner sheet — self-contained styles, same sheet chrome and
+   theme variables as the rest of the app. */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 200;
+  animation: shareFade 0.2s ease-out;
+}
+
+.sheet {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--color-bg);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  padding: var(--space-sm) var(--space-md)
+    calc(var(--space-xl) + env(safe-area-inset-bottom, 0));
+  z-index: 201;
+  max-height: 85vh;
+  overflow-y: auto;
+  animation: shareSlide 0.25s ease-out;
+}
+
+@keyframes shareFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes shareSlide {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.handle {
+  width: 36px;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--color-muted);
+  margin: 0 auto var(--space-md);
+  opacity: 0.4;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+.title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.hint {
+  font-size: 0.8rem;
+  color: var(--color-muted);
+  margin: var(--space-xs) 0 0;
+}
+
+.closeBtn {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  width: 32px;
+  height: 32px;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.closeBtn:active {
+  transform: scale(0.94);
+}
+
+.section {
+  margin-bottom: var(--space-md);
+}
+
+.sectionTitle {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-muted);
+  margin: 0 0 var(--space-sm);
+}
+
+.habitPicker {
+  display: flex;
+  gap: var(--space-xs);
+  overflow-x: auto;
+  padding-bottom: var(--space-xs);
+}
+
+.habitChip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  flex: 0 0 auto;
+  min-height: 40px;
+  padding: 0 var(--space-md);
+  background: var(--color-surface);
+  border: 2px solid transparent;
+  border-radius: var(--radius-full);
+  color: var(--color-text);
+  font-size: 0.9rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.habitChip.selected {
+  border-color: var(--color-primary);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-sm);
+}
+
+.rowIcon {
+  font-size: 1.3rem;
+  flex: 0 0 auto;
+}
+
+.rowBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.rowName {
+  display: block;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.rowMeta {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--color-muted);
+  margin-top: 2px;
+  overflow-wrap: anywhere;
+}
+
+.rowActions {
+  display: flex;
+  gap: var(--space-xs);
+  flex: 0 0 auto;
+}
+
+.together {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.inviteRow {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  padding: 12px var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 1rem;
+  font-family: var(--font-body);
+  outline: none;
+}
+
+.input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(38, 120, 182, 0.12);
+}
+
+.primaryBtn {
+  min-height: 44px;
+  padding: 0 var(--space-md);
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.primaryBtn:disabled {
+  opacity: 0.5;
+}
+
+.ghostBtn {
+  min-height: 44px;
+  padding: 0 var(--space-md);
+  background: transparent;
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.ghostBtn:active {
+  transform: scale(0.97);
+}
+
+.dangerBtn {
+  color: var(--color-delete);
+  border-color: var(--color-delete);
+}
+
+.placeholder {
+  color: var(--color-muted);
+  font-size: 0.9rem;
+  margin: 0;
+  padding: var(--space-sm) 0;
+}
+
+.error {
+  color: var(--color-delete);
+  font-size: 0.85rem;
+  margin: var(--space-sm) 0 0;
+}

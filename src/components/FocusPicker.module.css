@@ -1,0 +1,93 @@
+/**
+ * Chrome for the Focus today sheet. The sheet frame itself (overlay, handle,
+ * actions, submit button) comes from the global classes, so this file only
+ * styles the picker's own rows.
+ */
+
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.count {
+  flex-shrink: 0;
+  font-size: 0.85rem;
+  color: var(--color-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.hint {
+  margin: var(--space-xs) 0 var(--space-md);
+  font-size: 0.85rem;
+  color: var(--color-muted);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  list-style: none;
+  margin: 0 0 var(--space-md);
+  padding: 0;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  font-size: 1rem;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, opacity 0.15s ease;
+}
+
+.pinned {
+  border-color: var(--color-primary);
+}
+
+.blocked {
+  opacity: 0.55;
+}
+
+.icon {
+  flex-shrink: 0;
+  font-size: 1.3rem;
+}
+
+.name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.streak {
+  flex-shrink: 0;
+  font-size: 0.78rem;
+  color: var(--color-muted);
+}
+
+.check {
+  flex-shrink: 0;
+  width: 20px;
+  text-align: center;
+  color: var(--color-primary);
+  font-weight: 700;
+}

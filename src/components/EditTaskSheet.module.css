@@ -1,0 +1,125 @@
+/* ── Priority ── */
+.prioRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.prioBtn {
+  flex: 1;
+  min-width: 64px;
+  min-height: 44px;
+  padding: 6px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.prioBtnActive {
+  border-color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 22%, transparent);
+  font-weight: 600;
+}
+
+/* ── Repeat ── */
+.select {
+  appearance: none;
+  cursor: pointer;
+}
+
+/* ── Notes ── */
+.notes {
+  min-height: 88px;
+  resize: vertical;
+  font-family: inherit;
+  line-height: 1.4;
+}
+
+/* ── Subtasks ── */
+.subtaskList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.subtaskRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 2px 0;
+}
+
+.subtaskToggle {
+  flex-shrink: 0;
+  min-width: 32px;
+  min-height: 44px;
+  border: none;
+  background: transparent;
+  color: var(--color-muted);
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+
+.subtaskDone {
+  color: var(--color-primary);
+}
+
+.subtaskTitle {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.9rem;
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+
+.subtaskTitleDone {
+  text-decoration: line-through;
+  opacity: 0.55;
+}
+
+.subtaskRemove {
+  flex-shrink: 0;
+  min-width: 36px;
+  min-height: 44px;
+  border: none;
+  background: transparent;
+  color: var(--color-muted);
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.subtaskAddRow {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-xs);
+}
+
+.subtaskInput {
+  flex: 1;
+  min-width: 0;
+}
+
+.subtaskAddBtn {
+  flex-shrink: 0;
+  min-width: 44px;
+  min-height: 44px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+
+.subtaskAddBtn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}

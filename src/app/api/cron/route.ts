@@ -1,58 +1,27 @@
-import { serverClient } from "@/lib/supabase";
-import { sendMiniAppButton } from "@/lib/telegram";
+import { runReminderTick } from "@/lib/notify";
 
+/** Throttled sends can outlast the default function budget — see /api/cron/tick. */
+export const maxDuration = 60;
+
+/**
+ * Vercel's built-in daily cron still points here, so this stays as the backstop
+ * for the 10-minute `/api/cron/tick`: it runs the same engine (no forked logic)
+ * and additionally catches up the weekly report for anyone whose local weekday
+ * is Sunday and who is already past their weekly slot hour. Whichever path runs
+ * first wins, and the `reminder_log` ledger makes the other one a no-op.
+ */
 export async function GET(request: Request) {
-  if (
-    request.headers.get("authorization") !==
-    "Bearer " + process.env.CRON_SECRET
-  )
+  // Fail closed when CRON_SECRET is unset, so a request with the literal header
+  // "Bearer undefined" cannot match a missing secret.
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret || request.headers.get("authorization") !== `Bearer ${cronSecret}`)
     return new Response("Unauthorized", { status: 401 });
 
-  const sb = serverClient();
-
-  const { data: users } = await sb
-    .from("users")
-    .select("id, telegram_id, chat_id, timezone, reminder_hour")
-    .eq("reminder_enabled", true)
-    .not("chat_id", "is", null);
-
-  if (!users || users.length === 0)
-    return Response.json({ reminded: 0 });
-
-  const today = new Date().toISOString().slice(0, 10);
-
-  let reminded = 0;
-  for (let i = 0; i < users.length; i++) {
-    const u = users[i];
-
-    const { count } = await sb
-      .from("checkins")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", u.id)
-      .eq("date", today)
-      .eq("completed", true);
-
-    // head: true sends a HEAD request, so data comes back null and the row
-    // count arrives in `count`. Testing `data` here was always null, which made
-    // this guard dead code and reminded every user daily regardless.
-    if (count && count > 0) continue;
-
-    try {
-      await sendMiniAppButton(
-        u.chat_id!,
-        "You haven't checked in today. Tap below to log your habits.",
-        "Log habits"
-      );
-      reminded++;
-    } catch {
-      // skip user on failure
-    }
-
-    if (i > 0 && i % 25 === 0)
-      await new Promise((r) => setTimeout(r, 1000));
-    else if (reminded > 0)
-      await new Promise((r) => setTimeout(r, 35));
+  try {
+    const summary = await runReminderTick({ forceWeeklyOnSunday: true });
+    return Response.json(summary);
+  } catch (err) {
+    console.error("cron failed:", err);
+    return Response.json({ error: "TICK_FAILED" }, { status: 500 });
   }
-
-  return Response.json({ reminded });
 }

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { TelegramProvider } from "@/components/TelegramProvider";
 import { LanguageProvider } from "@/lib/i18n";
+import { ToastProvider } from "@/components/Toast";
 
 export const metadata: Metadata = {
   title: "HabitFlow",
@@ -20,7 +21,11 @@ export default function RootLayout({
         style={{ fontFamily: "var(--font-body)" }}
       >
         <TelegramProvider>
-          <LanguageProvider>{children}</LanguageProvider>
+          <LanguageProvider>
+            {/* Toasts are the only reliable feedback channel on Telegram Web,
+                where window.Telegram (and therefore haptics/showAlert) is absent. */}
+            <ToastProvider>{children}</ToastProvider>
+          </LanguageProvider>
         </TelegramProvider>
       </body>
     </html>

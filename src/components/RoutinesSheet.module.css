@@ -1,0 +1,408 @@
+/* Routines sheet — self-contained styles.
+   Mirrors the shared sheet chrome in globals.css but keeps everything local,
+   and reads the theme through the same CSS variables so light/dark just work. */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 200;
+  animation: routFade 0.2s ease-out;
+}
+
+.sheet {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--color-bg);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  padding: var(--space-sm) var(--space-md)
+    calc(var(--space-xl) + env(safe-area-inset-bottom, 0));
+  z-index: 201;
+  max-height: 85vh;
+  overflow-y: auto;
+  animation: routSlide 0.25s ease-out;
+}
+
+@keyframes routFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes routSlide {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.handle {
+  width: 36px;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--color-muted);
+  margin: 0 auto var(--space-md);
+  opacity: 0.4;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+.title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.hint {
+  font-size: 0.8rem;
+  color: var(--color-muted);
+  margin: var(--space-xs) 0 0;
+}
+
+.closeBtn {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  width: 32px;
+  height: 32px;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.closeBtn:active {
+  transform: scale(0.94);
+}
+
+.empty {
+  text-align: center;
+  color: var(--color-muted);
+  font-size: 0.9rem;
+  padding: var(--space-lg) var(--space-md);
+  margin: 0;
+}
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  margin-bottom: var(--space-sm);
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.cardIcon {
+  font-size: 1.4rem;
+  flex: 0 0 auto;
+}
+
+.cardName {
+  font-weight: 600;
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin-top: var(--space-sm);
+}
+
+.chip {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  color: var(--color-muted);
+}
+
+.cardItems {
+  font-size: 0.8rem;
+  color: var(--color-muted);
+  margin: var(--space-sm) 0 0;
+  overflow-wrap: anywhere;
+}
+
+/* A routine item whose habit was archived: kept, but never checked in. */
+.archived {
+  opacity: 0.55;
+}
+
+.cardActions {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+}
+
+.applyBtn {
+  flex: 1;
+  min-height: 44px;
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.15s;
+}
+
+.applyBtn:active {
+  transform: scale(0.97);
+}
+
+.applyBtn:disabled {
+  opacity: 0.5;
+}
+
+.ghostBtn {
+  min-height: 44px;
+  padding: 0 var(--space-md);
+  background: transparent;
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.ghostBtn:active {
+  transform: scale(0.97);
+}
+
+.dangerBtn {
+  color: var(--color-delete);
+  border-color: var(--color-delete);
+}
+
+/* ── Form ── */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.formTitle {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  font-size: 0.85rem;
+  color: var(--color-muted);
+  font-weight: 500;
+}
+
+.input {
+  padding: 12px var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 1rem;
+  font-family: var(--font-body);
+  outline: none;
+}
+
+.input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(38, 120, 182, 0.12);
+}
+
+.emojiPicker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.emojiOption {
+  min-height: 44px;
+  min-width: 44px;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  border: 2px solid transparent;
+  font-size: 1.3rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.emojiOption.selected {
+  border-color: var(--color-primary);
+}
+
+.weekdays {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.weekday {
+  flex: 1 1 0;
+  min-height: 44px;
+  min-width: 0;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  border: 2px solid transparent;
+  color: var(--color-text);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.weekday.selected {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.habitList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  max-height: 190px;
+  overflow-y: auto;
+}
+
+.habitRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-height: 44px;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-size: 0.95rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.habitRow.selected {
+  border-color: var(--color-primary);
+}
+
+.habitRowName {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.check {
+  width: 20px;
+  text-align: center;
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: flex-end;
+}
+
+.cancelBtn {
+  padding: 10px 20px;
+  min-height: 44px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.submitBtn {
+  padding: 10px 24px;
+  min-height: 44px;
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.submitBtn:disabled {
+  opacity: 0.5;
+}
+
+.deleteBtn {
+  width: 100%;
+  min-height: 44px;
+  padding: 12px;
+  margin-top: var(--space-sm);
+  background: transparent;
+  color: var(--color-delete);
+  border: 1px solid var(--color-delete);
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.deleteConfirm {
+  margin-top: var(--space-md);
+  padding: var(--space-md);
+  background: var(--color-delete-bg);
+  border-radius: var(--radius-md);
+}
+
+.deleteConfirmText {
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-align: center;
+  margin: 0 0 var(--space-sm);
+}
+
+.deleteConfirmBtn {
+  padding: 10px 24px;
+  min-height: 44px;
+  background: var(--color-delete);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.deleteConfirmBtn:disabled {
+  opacity: 0.5;
+}
+
+.error {
+  color: var(--color-delete);
+  font-size: 0.85rem;
+  margin: 0;
+}

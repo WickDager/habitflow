@@ -85,6 +85,177 @@ export const en = {
   notInTelegram: "Please open HabitFlow directly within Telegram.",
   notInTelegramDesc:
     "Open your Telegram app, find your bot (@{{bot}}), and tap the menu button or send /start.",
+
+  // ── Feedback (toasts replace the no-op haptics on Telegram Web) ──
+  saved: "Saved",
+  deleted: "Deleted",
+  undo: "Undo",
+  retry: "Retry",
+  sessionExpired: "Your session expired. Reopen HabitFlow from the bot.",
+  rateLimited: "Too many requests — try again in a minute.",
+  authFailed: "Couldn't verify you. Reopen HabitFlow from the bot.",
+  serverError: "Something went wrong on the server. Try again.",
+
+  // ── Settings / reminders ──
+  settings: "Settings",
+  reminders: "Reminders",
+  reminderEnabledLabel: "Daily reminders",
+  morningPlan: "Morning plan",
+  morningPlanHint: "A summary of your day, sent each morning",
+  eveningReview: "Evening review",
+  eveningReviewHint: "Wrap up the day and log your mood",
+  middayNudge: "Midday nudge",
+  middayNudgeHint: "One nudge if nothing is logged yet",
+  weeklyReportLabel: "Weekly report",
+  weeklyReportHint: "A recap every Sunday",
+  reminderTimes: "Times",
+  timeMorning: "Morning",
+  timeEvening: "Evening",
+  timeNudge: "Nudge",
+  quietHoursLabel: "Quiet hours",
+  quietHoursHint: "No messages during these hours",
+  quietHoursWarning: "This window covers every reminder time you picked — you won't be reminded at all.",
+  quietFrom: "From",
+  quietTo: "To",
+  timezoneLabel: "Timezone",
+  timezoneHint: "Detected from your device",
+  maxPerDayLabel: "Max messages per day",
+  settingsSaved: "Settings saved",
+  settingsSaveFailed: "Couldn't save settings",
+
+  // ── My Day ──
+  myDay: "My Day",
+  habitsSection: "Habits",
+  tasksSection: "Tasks",
+  pullIntoToday: "Pull into today",
+  noTasksToday: "No tasks due today.",
+  dueToday: "Due today",
+  overdue: "Overdue",
+  rollOver: "Move to today",
+  rollOverAll: "Move all to today",
+  rolledOver: "Moved to today",
+
+  // ── Focus of the day ──
+  focusToday: "Focus today",
+  focusHint: "Pick up to 3 habits that matter most today",
+  focusLimitReached: "You can pick up to 3",
+  focusCleared: "Focus cleared",
+
+  // ── Quick add ──
+  quickAddPlaceholder: "Add a task — try \"call mom tomorrow 6pm\"",
+  quickAddHint: "!1 for priority · #tag to label · tomorrow · fri 9am",
+  add: "Add",
+  taskAdded: "Task added",
+  parseFailed: "Couldn't understand that one",
+
+  // ── Priorities & tags ──
+  priorityLabel: "Priority",
+  priorityNone: "None",
+  priorityHigh: "High",
+  priorityMedium: "Medium",
+  priorityLow: "Low",
+  tagsLabel: "Tags",
+  addTag: "Add tag",
+  newTagPlaceholder: "New tag name",
+  noTagsYet: "No tags yet",
+  filterAll: "All",
+  filterToday: "Today",
+  filterOverdue: "Overdue",
+  filterHighPriority: "High priority",
+
+  // Relative due-date labels (the weekday/month form is locale-formatted)
+  dateToday: "Today",
+  dateTomorrow: "Tomorrow",
+  dateYesterday: "Yesterday",
+
+  // ── Subtasks & notes ──
+  subtasksLabel: "Steps",
+  addSubtask: "Add a step",
+  notesLabel: "Notes",
+  notesPlaceholder: "Add notes…",
+  subtaskProgress: "{{done}} of {{total}} steps",
+
+  // ── Recurrence ──
+  repeatLabel: "Repeat",
+  repeatNever: "Never",
+  repeatDaily: "Daily",
+  repeatWeekly: "Weekly",
+  repeatMonthly: "Monthly",
+
+  // ── Routines ──
+  routines: "Routines",
+  newRoutine: "New routine",
+  routineName: "Routine name",
+  routineHabits: "Habits in this routine",
+  routineDays: "Days",
+  applyRoutine: "Apply",
+  routineApplied: "{{count}} habits checked in",
+  noRoutinesYet: "No routines yet. Bundle habits you always do together.",
+  deleteRoutine: "Delete routine",
+  everyDay: "Every day",
+
+  // ── Insights ──
+  insights: "Insights",
+  heatmapTitle: "Last 5 weeks",
+  completionRate: "Completion rate",
+  bestDayLabel: "Best day",
+  moodByCompletion: "Mood by completion",
+  moodOnCompleteDays: "On days you complete habits",
+  moodOnMissedDays: "On days you don't",
+  noInsightsYet: "Log a few days to unlock insights.",
+  reportTitle: "Your week in HabitFlow",
+  share: "Share",
+
+  // ── Streaks & motivation ──
+  streakMilestone: "{{count}} days of {{habit}}!",
+  streakAtRisk: "Your {{count}}-day streak is at risk — check in today.",
+  graceDay: "Use a grace day",
+  graceDayUsed: "Grace day used — streak protected",
+  graceDayNone: "No grace days left this month",
+  graceDayNotNeeded: "Your streak is already safe for yesterday",
+  streakAtRiskTitle: "Streak at risk",
+  graceDayHint: "Protects a streak for one missed day, once a month",
+  comebackTitle: "Ready to start again?",
+  comebackBody: "No catch-up needed. Pick one habit for today.",
+
+  // ── Sharing / accountability ──
+  accountabilityPartner: "Accountability partner",
+  partnerHint: "You'll both see this habit's streak",
+  partnerInvite: "Invite",
+  partnerPending: "Invite sent",
+  partnerAccept: "Accept",
+  partnerDecline: "Decline",
+  partnerNone: "No partner yet",
+  partnerTogether: "Together: {{count}} days",
+  partnerCantInviteSelf: "You can't invite yourself",
+  partnerNeedsStart: "They need to have started the bot first",
+
+  // ── Bot messages ──
+  botHelp:
+    "Commands:\n/add <task> — add a task\n/today — today's plan\n/stats — your progress\n/settings — reminders",
+  botTodayTitle: "Today, {{date}}",
+  botNothingToday: "Nothing scheduled today. Enjoy it.",
+  botDone: "Done",
+  botLater: "Later",
+  botSkip: "Skip",
+  botSnoozed: "Snoozed for an hour",
+  botSkipped: "Skipped for today",
+  botAdded: "Added: {{title}}",
+  botAddUsage: "Send /add followed by what you need to do.\nExample: /add pay rent tomorrow 9am",
+  botTaskDue: "⏰ Due now: {{title}}",
+  botMoodLogged: "Mood logged — thanks!",
+  botMoodQuestion: "How did today go?",
+  botForwardedSaved: "Saved as a task.",
+  botMorningTitle: "Good morning, {{name}}",
+  botMorningBody: "Today: {{habits}} habits · {{tasks}} tasks",
+  botEveningTitle: "How did today go?",
+  botEveningBody: "{{done}} of {{total}} habits done today.",
+  botNothingLoggedYet: "Nothing logged yet today — {{count}} to go.",
+  botStreakLine: "Longest streak: {{count}} days",
+  botMuteHint: "Turn these off any time with /settings",
+
+  // ── Task empty states that teach ──
+  emptyTasksTeach: "Add your first task — try \"call mom Friday 6pm\"",
 } as const;
 
 export type TranslationKeys = keyof typeof en;

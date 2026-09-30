@@ -1,0 +1,223 @@
+/**
+ * My Day layout.
+ *
+ * Everything here sits on top of the global classes (habit-list, habit-row,
+ * task-info, task-due-badge, empty-state, progress-bar) so the merged view
+ * still looks like the rest of the app; the module only adds what the merged
+ * screen needs — sections, the focus chips, and the overdue treatment.
+ */
+
+.view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.section,
+.focusSection {
+  display: flex;
+  flex-direction: column;
+}
+
+.sectionHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  min-height: 32px;
+}
+
+/* The global .section-label carries its own bottom margin; inside a flex
+   header row that margin would push the heading out of alignment. */
+.sectionHead h2 {
+  margin: 0;
+  min-width: 0;
+}
+
+/* ── Focus today ── */
+
+.focusList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.focusChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 60vw;
+  padding: 8px 14px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  color: var(--color-text);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.focusChip:active {
+  transform: scale(0.97);
+}
+
+.focusChipDone {
+  opacity: 0.6;
+}
+
+.focusChipDone .focusChipName {
+  text-decoration: line-through;
+}
+
+.focusChipName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.focusChipStreak {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  color: var(--color-muted);
+}
+
+.focusEmpty {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-muted);
+}
+
+.focusEditBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  color: var(--color-text);
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0 12px;
+}
+
+/* ── Tasks ── */
+
+.taskList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.taskRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+/* Overdue has to read as different at a glance: it is the one part of the
+   list that carries a cost for ignoring it. */
+.overdueRow {
+  border-left: 3px solid var(--color-mood-sad);
+  background: color-mix(in srgb, var(--color-mood-sad) 8%, var(--color-bg));
+}
+
+/* Scoped to the global badge class on purpose: both rules have one class, so
+   without the extra weight the muted colour could win depending on stylesheet
+   order. */
+:global(.task-due-badge).overdueBadge {
+  color: var(--color-mood-sad);
+  border-color: color-mix(in srgb, var(--color-mood-sad) 45%, transparent);
+}
+
+.taskMain {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-width: 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+/* priority is 0=none, 1=low, 2=medium, 3=high (lib/schemas.ts). The colours
+   reuse the mood tokens so they follow the theme instead of being picked
+   twice, and low/medium/high land on blue/orange/red. */
+.priorityDot,
+.priorityNone {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.priorityNone {
+  background: transparent;
+}
+
+.priorityDot[data-priority="1"] {
+  background: var(--color-primary);
+}
+
+.priorityDot[data-priority="2"] {
+  background: var(--color-mood-neutral);
+}
+
+.priorityDot[data-priority="3"] {
+  background: var(--color-mood-sad);
+}
+
+.rollBtn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-primary);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.rollAllBtn {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  color: var(--color-primary);
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+/* ── Habits ── */
+
+.progress {
+  margin-bottom: var(--space-sm);
+}
+
+.progressLabel {
+  font-size: 0.78rem;
+  color: var(--color-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
