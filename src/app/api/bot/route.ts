@@ -4,15 +4,9 @@ import {
   sendMiniAppButton,
   sendPhotoWithButton,
   sendAnimationWithButton,
-  answerCallbackQuery,
+  setMyCommands,
 } from "@/lib/telegram";
-import { en } from "@/lib/i18n/en";
-import { ru } from "@/lib/i18n/ru";
-
-function botT(langCode: string | undefined) {
-  const t = (langCode === "ru" || langCode === "uk" || langCode === "be") ? ru : en;
-  return t;
-}
+import { botT, handleBotUpdate } from "@/lib/botCommands";
 
 export async function GET(request: Request) {
   // Debug endpoints only — the bot and the client never call this. Gate them
@@ -121,9 +115,19 @@ export async function POST(request: Request) {
         username: msg.from.username,
         chat_id: chatId,
         language_code: msg.from.language_code || "en",
+        last_active_at: new Date().toISOString(),
       },
       { onConflict: "telegram_id" }
     );
+
+    // Publish the command list to Telegram's menu. Best-effort and separate
+    // from the welcome below: a failure here must not cost the user the
+    // welcome message, and vice versa.
+    try {
+      await setMyCommands();
+    } catch (e) {
+      console.error("setMyCommands failed:", e);
+    }
 
     try {
       const photoUrl = process.env.WELCOME_PHOTO_URL;
@@ -140,41 +144,13 @@ export async function POST(request: Request) {
       await sendMessage(chatId, t.botWelcome + "\n\n" + (process.env.NEXT_PUBLIC_APP_URL || "https://habitflow-pi-ten.vercel.app"));
     }
 
-    return Response.json({ ok: true });
+    return Response.json({ ok: true, handled: "start" });
   }
 
-  if (update.message?.text === "/settings") {
-    const chatId = update.message.chat.id;
-    const t = botT(update.message.from?.language_code);
-    await sendMessage(chatId, t.botReminderSettings, {
-      replyMarkup: {
-        inline_keyboard: [
-          [
-            { text: t.botEnableReminders, callback_data: "reminder_on" },
-            { text: t.botDisableReminders, callback_data: "reminder_off" },
-          ],
-        ],
-      },
-    });
-    return Response.json({ ok: true });
-  }
-
-  if (update.callback_query) {
-    const cq = update.callback_query;
-    const sb = serverClient();
-
-    if (cq.data === "reminder_on" || cq.data === "reminder_off") {
-      await sb
-        .from("users")
-        .update({ reminder_enabled: cq.data === "reminder_on" })
-        .eq("telegram_id", cq.from.id);
-
-      await answerCallbackQuery(cq.id);
-      return Response.json({ ok: true });
-    }
-  }
-
-  return Response.json({ ok: true });
+  // Everything else — the other commands, every callback_data the reminder
+  // engine emits, and forwarded messages — lives in the module so it can be
+  // exercised without an HTTP request.
+  return Response.json(await handleBotUpdate(update, serverClient()));
   } catch (err) {
     console.error("Bot error:", err);
     return Response.json(

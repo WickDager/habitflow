@@ -1,0 +1,117 @@
+/* ── Filters ── */
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+.filterChip {
+  padding: 6px 12px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-muted);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.filterChipActive {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-primary-text);
+  font-weight: 600;
+}
+
+/* ── Swipe to delete ──
+   The global .swipe-delete-bg is locked at opacity:0, so the row used to slide
+   onto blank space with nothing to tap. This is the same idea with a visible
+   target, kept inside the module because globals.css is not ours to edit. */
+.swipeItem {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  margin-bottom: 2px;
+}
+
+.swipeDeleteBg {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: var(--space-md);
+  background: var(--color-delete);
+  border-radius: var(--radius-md);
+}
+
+.swipeDeleteBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  padding: 0 var(--space-sm);
+  border: none;
+  background: transparent;
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.swipeRow {
+  /* Above the delete target so the red only shows once the row slides. */
+  position: relative;
+  z-index: 1;
+  /* Let the browser scroll vertically while we track horizontal swipes. */
+  touch-action: pan-y;
+}
+
+/* Applied while a finger is down: without it the 200ms transform transition
+   on .habit-row makes the row trail the finger. */
+.swipeDragging {
+  transition: none;
+}
+
+/* ── Row details ── */
+.prioDot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  margin-right: calc(var(--space-sm) * -1 + 2px);
+  border-radius: 50%;
+  background: var(--color-muted);
+}
+
+.prioDot[data-priority="1"] {
+  background: #4c9aff;
+}
+
+.prioDot[data-priority="2"] {
+  background: var(--color-mood-neutral);
+}
+
+.prioDot[data-priority="3"] {
+  background: var(--color-delete);
+}
+
+.meta {
+  flex-wrap: wrap;
+}
+
+.overdue {
+  color: var(--color-delete);
+  border-color: var(--color-delete);
+}
+
+.tagChip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--color-primary) 18%, transparent);
+  color: var(--color-text);
+  font-size: 0.78rem;
+  white-space: nowrap;
+}

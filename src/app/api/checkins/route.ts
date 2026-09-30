@@ -1,10 +1,15 @@
 import { withAuth } from "@/lib/withAuth";
 import { authenticatedClient } from "@/lib/supabase";
 import { BulkCheckinSchema } from "@/lib/schemas";
+import { addDays, dateInTimezone } from "@/lib/dates";
 
 export const GET = withAuth(async (req, ctx) => {
   const url = new URL(req.url);
-  const date = url.searchParams.get("date") ?? new Date().toISOString().slice(0, 10);
+  // Default to the caller's local day, not UTC's — they differ for most of the
+  // world for part of the day, and the client asks by its own local date.
+  const date =
+    url.searchParams.get("date") ??
+    dateInTimezone(ctx.profile.timezone || "UTC");
 
   const sb = authenticatedClient(ctx.user.supabase_token);
 
@@ -28,8 +33,13 @@ export const POST = withAuth(async (req, ctx) => {
   if (!parsed.success)
     return Response.json({ error: parsed.error.flatten() }, { status: 400 });
 
-  const today = new Date().toISOString().slice(0, 10);
-  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  // The window must be the *caller's* local today/yesterday, not UTC's. The
+  // client sends dates from its own local calendar, so for users far enough
+  // east (UTC+12 and beyond) a morning save carried tomorrow's UTC date and
+  // was rejected as INVALID_DATE.
+  const timezone = ctx.profile.timezone || "UTC";
+  const today = dateInTimezone(timezone);
+  const yesterday = addDays(today, -1);
 
   for (const c of parsed.data.checkins) {
     if (c.date !== today && c.date !== yesterday)

@@ -1,18 +1,29 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import useSWR from "swr";
-import { apiFetch } from "@/lib/apiFetch";
+import { useEffect, useRef, useState } from "react";
+import useSWR, { type SWRConfiguration } from "swr";
+import { apiFetch, getInitData, ApiError } from "@/lib/apiFetch";
 import { useLanguage } from "@/lib/i18n";
+import { useToast } from "@/components/Toast";
+import { errorMessage } from "@/lib/errors";
+import { parseDateString } from "@/lib/dates";
 import { HabitSkeleton } from "./HabitSkeleton";
+import { StreakProtection } from "./StreakProtection";
+import { Heatmap } from "./Heatmap";
+// Type-only: keeps next/og (which the report module imports at runtime) out of
+// the client bundle while still sharing one definition of the payload.
+import type { InsightsResponse } from "@/lib/reportImage";
 
 // Mirrors the habit_streaks row shape in src/lib/database.types.ts.
-// This read total_completions, a column of the v2 materialized view that
-// supabase-schema.sql drops when it creates the v3 table — so the value was
-// always undefined and both streak cards rendered 0 for every user.
+// This used to read only current_streak: the v2 materialized view's
+// total_completions was dropped by supabase-schema.sql when it created the v3
+// table, so the "total check-ins" card summed current_streak and rendered
+// nonsense. Both columns exist now and mean what they say, so the two cards
+// read one column each.
 interface StreakData {
   habit_id: string;
   current_streak: number;
+  total_completions: number;
   last_completed: string;
 }
 
@@ -33,6 +44,21 @@ interface StatsResponse {
   recentMoods: MoodEntry[];
   weekly: WeeklyEntry[];
 }
+
+/** How far back the insights grid looks — five weeks, i.e. the heatmap size. */
+const INSIGHTS_DAYS = 35;
+
+/** Matches the private constant in src/lib/apiFetch.ts. */
+const SESSION_STORAGE_KEY = "habitflow_session";
+const SESSION_HEADER = "x-session-token";
+
+const SWR_OPTIONS: SWRConfiguration = {
+  onErrorRetry: (err, _key, _config, revalidate, { retryCount }) => {
+    if (err.message?.includes("init data is missing")) return;
+    if (retryCount >= 3) return;
+    setTimeout(() => revalidate({ retryCount }), 5000);
+  },
+};
 
 function AnimatedNumber({ value }: { value: number }) {
   const ref = useRef<HTMLSpanElement>(null);
@@ -88,7 +114,7 @@ function MoodChart({ moods }: { moods: MoodEntry[] }) {
     .join(" ");
 
   const dayNames = points.map((p) => {
-    const d = new Date(p.date);
+    const d = parseDateString(p.date);
     return d.toLocaleDateString(undefined, { weekday: "short" });
   });
 
@@ -218,18 +244,124 @@ function MoodBreakdown({ moods }: { moods: MoodEntry[] }) {
   );
 }
 
-export function StatsView() {
+/**
+ * One row of "mood by completion".
+ *
+ * Mood is stored as 1 = happy, 2 = neutral, 3 = sad — the number runs the
+ * opposite way to how it reads, so a raw average is a trap ("1.4" looks worse
+ * than "2.0"). Two things fix that here: the bar length is the *inverted* value
+ * (a longer bar is always a happier mood) and the number is replaced by the
+ * emoji plus the word, so nobody has to know the scale to read the row.
+ */
+function MoodCompletionRow({ label, avg }: { label: string; avg: number | null }) {
   const { t } = useLanguage();
+  const mood = avg === null ? null : Math.min(3, Math.max(1, Math.round(avg)));
+  // (3 - mood) / 2 maps 1 → 100%, 2 → 50%, 3 → 0%.
+  const pct = avg === null ? 0 : Math.round(((3 - avg) / 2) * 100);
+  const word =
+    mood === 1
+      ? t("moodDescHappy")
+      : mood === 2
+        ? t("moodDescNeutral")
+        : mood === 3
+          ? t("moodDescSad")
+          : null;
+
+  return (
+    <div>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "baseline",
+          gap: 8,
+          marginBottom: 6,
+        }}
+      >
+        <span style={{ fontSize: "0.8rem", color: "var(--color-muted)" }}>
+          {label}
+        </span>
+        <span
+          style={{ fontSize: "0.8rem", fontWeight: 600, whiteSpace: "nowrap" }}
+        >
+          {mood === null ? "—" : `${MOOD_EMOJI[mood]} ${word}`}
+        </span>
+      </div>
+      <div
+        className="mood-breakdown-bar-track"
+        role="img"
+        aria-label={
+          mood === null ? `${label}: —` : `${label}: ${word}, ${avg} / 3`
+        }
+      >
+        <div
+          className="mood-breakdown-bar"
+          style={{ width: `${pct}%`, background: "var(--color-primary)" }}
+        />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Fetches the report PNG.
+ *
+ * `apiFetch` always parses JSON, so it cannot carry an image; this mirrors its
+ * header set instead (init data, session token, timezone) and writes back the
+ * refreshed session token the same way.
+ */
+async function fetchReportBlob(): Promise<Blob> {
+  const initData = getInitData();
+  let sessionToken: string | undefined;
+  try {
+    sessionToken = localStorage.getItem(SESSION_STORAGE_KEY) ?? undefined;
+  } catch {
+    /* private mode — there is simply no stored token */
+  }
+  if (!initData && !sessionToken) throw new Error("NOT_IN_TELEGRAM");
+
+  const headers: Record<string, string> = {};
+  if (initData) headers["x-telegram-init-data"] = initData;
+  if (sessionToken) headers[SESSION_HEADER] = sessionToken;
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (tz) headers["x-timezone"] = tz;
+  } catch {
+    /* keep the request going without a timezone */
+  }
+
+  const res = await fetch("/api/report?format=image", { headers });
+  const refreshed = res.headers.get(SESSION_HEADER);
+  if (refreshed) {
+    try {
+      localStorage.setItem(SESSION_STORAGE_KEY, refreshed);
+    } catch {
+      /* storage disabled */
+    }
+  }
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new ApiError(res.status, body.error ?? "API_ERROR", !!body.reopen);
+  }
+  return res.blob();
+}
+
+export function StatsView() {
+  const { t, lang } = useLanguage();
+  const { toast } = useToast();
+  const [sharing, setSharing] = useState(false);
+
   const { data, isLoading, error } = useSWR<StatsResponse>(
     "/api/checkins/stats",
     apiFetch,
-    {
-      onErrorRetry: (err, _key, _config, revalidate, { retryCount }) => {
-        if (err.message?.includes("init data is missing")) return;
-        if (retryCount >= 3) return;
-        setTimeout(() => revalidate({ retryCount }), 5000);
-      },
-    }
+    SWR_OPTIONS
+  );
+
+  const { data: insights, error: insightsError } = useSWR<InsightsResponse>(
+    `/api/insights?days=${INSIGHTS_DAYS}`,
+    apiFetch,
+    SWR_OPTIONS
   );
 
   if (isLoading) return <HabitSkeleton count={4} />;
@@ -248,8 +380,9 @@ export function StatsView() {
     activeStreaks.length > 0
       ? Math.max(...activeStreaks.map((s) => s.current_streak ?? 0))
       : 0;
-  const totalCheckins = activeStreaks.reduce(
-    (sum, s) => sum + (s.current_streak ?? 0),
+  // All-time completions, straight from the column that holds them.
+  const totalCheckins = (data.streaks ?? []).reduce(
+    (sum, s) => sum + (s.total_completions ?? 0),
     0
   );
 
@@ -259,8 +392,74 @@ export function StatsView() {
     totalWeekly > 0 ? Math.round((completedWeekly / totalWeekly) * 100) : 0;
   const isPerfectWeek = totalWeekly > 0 && completedWeekly === totalWeekly;
 
+  const locale = lang === "ru" ? "ru-RU" : "en-GB";
+  // "Enough data" means the window holds at least one completion or one logged
+  // mood. Anything less and the grid would just be a blank chart.
+  const hasInsights =
+    !!insights &&
+    (insights.heatmap.some((d) => d.count > 0) ||
+      insights.moodByCompletion.completedAvg !== null ||
+      insights.moodByCompletion.missedAvg !== null);
+
+  const completionPct =
+    insights && insights.heatmap.length > 0
+      ? Math.round(
+          Math.min(
+            1,
+            insights.heatmap.reduce((s, d) => s + d.count, 0) /
+              Math.max(
+                1,
+                insights.heatmap.reduce((s, d) => s + d.total, 0)
+              )
+          ) * 100
+        )
+      : 0;
+
+  // 2024-01-07 was a Sunday, so 0..6 maps to Sunday-first without ISO strings.
+  const bestWeekdayName =
+    insights?.bestWeekday === null || insights?.bestWeekday === undefined
+      ? null
+      : new Date(2024, 0, 7 + insights.bestWeekday, 12).toLocaleDateString(
+          locale,
+          { weekday: "long" }
+        );
+
+  async function shareReport() {
+    setSharing(true);
+    try {
+      const blob = await fetchReportBlob();
+      const file = new File([blob], "habitflow-week.png", { type: "image/png" });
+
+      // Telegram Web has no Web Share API, so this is a bonus path, not the
+      // only one.
+      if (
+        typeof navigator.canShare === "function" &&
+        typeof navigator.share === "function" &&
+        navigator.canShare({ files: [file] })
+      ) {
+        await navigator.share({ files: [file], title: t("reportTitle") });
+        return;
+      }
+
+      // Fallback: a blob URL. Linking straight to /api/report would arrive
+      // without the init-data headers and 401.
+      const url = URL.createObjectURL(blob);
+      const opened = window.open(url, "_blank");
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      if (!opened) throw new Error("POPUP_BLOCKED");
+    } catch (err) {
+      // Dismissing the share sheet is not a failure.
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      toast(errorMessage(err, t), { kind: "error" });
+    } finally {
+      setSharing(false);
+    }
+  }
+
   return (
     <div className="stats-view">
+      {/* Renders nothing unless a live streak is unprotected today. */}
+      <StreakProtection />
       <div className="streak-grid">
         {activeStreaks.length === 0 && totalCheckins === 0 ? (
           <div className="streak-card" style={{ gridColumn: "1 / -1" }}>
@@ -288,6 +487,59 @@ export function StatsView() {
           </>
         )}
       </div>
+
+      {insightsError ? null : hasInsights && insights ? (
+        <>
+          <p className="section-label">{t("insights")}</p>
+
+          <div className="stats-card">
+            <h2 className="stats-card-title">{t("heatmapTitle")}</h2>
+            <Heatmap days={insights.heatmap} />
+          </div>
+
+          <div className="streak-grid">
+            <div className="streak-card">
+              <span className="streak-emoji">🎯</span>
+              <span className="streak-number">
+                <AnimatedNumber value={completionPct} />%
+              </span>
+              <span className="streak-label">{t("completionRate")}</span>
+            </div>
+            <div className="streak-card">
+              <span className="streak-emoji">📅</span>
+              <span className="streak-number" style={{ fontSize: "1.15rem" }}>
+                {bestWeekdayName ?? "—"}
+              </span>
+              <span className="streak-label">{t("bestDayLabel")}</span>
+            </div>
+          </div>
+
+          <div className="stats-card">
+            <h2 className="stats-card-title">{t("moodByCompletion")}</h2>
+            <div className="mood-breakdown">
+              <MoodCompletionRow
+                label={t("moodOnCompleteDays")}
+                avg={insights.moodByCompletion.completedAvg}
+              />
+              <MoodCompletionRow
+                label={t("moodOnMissedDays")}
+                avg={insights.moodByCompletion.missedAvg}
+              />
+            </div>
+          </div>
+
+          <button
+            type="button"
+            className="save-btn"
+            onClick={shareReport}
+            disabled={sharing}
+          >
+            {sharing ? t("saving") : t("share")}
+          </button>
+        </>
+      ) : (
+        <p className="muted-text">{t("noInsightsYet")}</p>
+      )}
 
       <div className="stats-card">
         <h2 className="stats-card-title">{t("moodTrend")}</h2>

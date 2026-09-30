@@ -1,14 +1,44 @@
 export class ApiError extends Error {
   constructor(
     public status: number,
-    message: string
+    message: string,
+    /** Server says the init data is too old — the user must reopen from the bot. */
+    public reopen = false
   ) {
     super(message);
     this.name = "ApiError";
   }
 }
 
-function getInitData(): string | undefined {
+const SESSION_STORAGE_KEY = "habitflow_session";
+
+function readSessionToken(): string | undefined {
+  try {
+    return localStorage.getItem(SESSION_STORAGE_KEY) ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function writeSessionToken(token: string | null) {
+  if (!token) return;
+  try {
+    localStorage.setItem(SESSION_STORAGE_KEY, token);
+  } catch {
+    /* private mode / storage disabled — session just won't persist */
+  }
+}
+
+/** Device timezone, sent so the server can schedule reminders in local time. */
+function deviceTimezone(): string | undefined {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export function getInitData(): string | undefined {
   if (typeof window === "undefined") return undefined;
 
   const tgInitData = window.Telegram?.WebApp?.initData;
@@ -36,8 +66,12 @@ export async function apiFetch<T>(
   options?: RequestInit
 ): Promise<T> {
   const initData = getInitData();
+  const sessionToken = readSessionToken();
 
-  if (!initData) {
+  // A session token alone is enough: the server trades it for a fresh
+  // Supabase JWT. This is what keeps the app alive past Telegram's
+  // auth_date window on Telegram Web, where init data never refreshes.
+  if (!initData && !sessionToken) {
     if (typeof window !== "undefined" && process.env.NODE_ENV !== "development") {
       throw new Error("NOT_IN_TELEGRAM");
     }
@@ -46,27 +80,25 @@ export async function apiFetch<T>(
     );
   }
 
-  console.log("apiFetch sending:", {
-    url,
-    method: options?.method ?? "GET",
-    initDataLen: initData.length,
-    initDataPreview: initData.slice(0, 100),
-    hasHashParam: initData.includes("hash="),
-    hasSignatureParam: initData.includes("signature="),
-  });
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(options?.headers as Record<string, string> | undefined),
+  };
+  if (initData) headers["x-telegram-init-data"] = initData;
+  if (sessionToken) headers["x-session-token"] = sessionToken;
+  const tz = deviceTimezone();
+  if (tz) headers["x-timezone"] = tz;
 
-  const res = await fetch(url, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      "x-telegram-init-data": initData,
-      ...options?.headers,
-    },
-  });
+  const res = await fetch(url, { ...options, headers });
+
+  // The API refreshes the session token on every init-data request, sliding
+  // the 30-day window forward.
+  const refreshed = res.headers.get("x-session-token");
+  if (refreshed) writeSessionToken(refreshed);
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new ApiError(res.status, body.error ?? "API_ERROR");
+    throw new ApiError(res.status, body.error ?? "API_ERROR", !!body.reopen);
   }
 
   if (res.status === 204) return undefined as T;

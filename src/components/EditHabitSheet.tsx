@@ -5,6 +5,8 @@ import { useSWRConfig } from "swr";
 import { apiFetch } from "@/lib/apiFetch";
 import { haptics } from "@/lib/haptics";
 import { useLanguage } from "@/lib/i18n";
+import { todayLocal } from "@/lib/dates";
+import { errorMessage } from "@/lib/errors";
 
 interface Habit {
   id: string;
@@ -47,13 +49,16 @@ export function EditHabitSheet({ habit, onClose }: EditHabitSheetProps) {
         body: JSON.stringify({ name: name.trim(), icon }),
       });
       haptics.success();
-      const today = new Date().toISOString().slice(0, 10);
-      await mutate(`/api/checkins?date=${today}`);
+      // Must match the Today view's SWR key exactly, or the edited habit stays
+      // stale in the list. That key is built from the local day.
+      await mutate(`/api/checkins?date=${todayLocal()}`);
       onClose();
     } catch (err) {
       haptics.error();
-      const msg = err instanceof Error ? err.message : "";
-      setError(msg.includes("HABIT_LIMIT") ? t("saveFailed") : t("saveFailed"));
+      // The old branch tested for HABIT_LIMIT but returned the same string
+      // either way, so the distinction was dead. errorMessage() surfaces the
+      // real cause (session expiry, rate limit, server fault).
+      setError(errorMessage(err, t));
     } finally {
       setSaving(false);
     }
@@ -65,8 +70,7 @@ export function EditHabitSheet({ habit, onClose }: EditHabitSheetProps) {
     try {
       await apiFetch(`/api/habits/${habit.id}`, { method: "DELETE" });
       haptics.success();
-      const today = new Date().toISOString().slice(0, 10);
-      await mutate(`/api/checkins?date=${today}`);
+      await mutate(`/api/checkins?date=${todayLocal()}`);
       await mutate("/api/checkins/stats");
       onClose();
     } catch (err) {

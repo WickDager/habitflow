@@ -7,6 +7,10 @@ import { StatsView } from "@/components/StatsView";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { FAB } from "@/components/FAB";
 import { CreateModal } from "@/components/CreateModal";
+import { SettingsSheet } from "@/components/SettingsSheet";
+import { RoutinesSheet } from "@/components/RoutinesSheet";
+import { ShareSheet } from "@/components/ShareSheet";
+import styles from "./page.module.css";
 import { useTelegram } from "@/components/TelegramProvider";
 import { useLanguage } from "@/lib/i18n";
 
@@ -27,6 +31,9 @@ function applyTheme(theme: "light" | "dark") {
 export default function Home() {
   const [tab, setTab] = useState<Tab>("today");
   const [modalOpen, setModalOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [routinesOpen, setRoutinesOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const [theme, setTheme] = useState<"light" | "dark">(() => getTheme());
   const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
 
@@ -89,6 +96,14 @@ export default function Home() {
             <LanguageSwitcher />
             <button
               className="nav-icon-btn"
+              onClick={() => setSettingsOpen(true)}
+              aria-label={t("settings")}
+              style={{ minHeight: 36, minWidth: 36 }}
+            >
+              ⚙️
+            </button>
+            <button
+              className="nav-icon-btn"
               onClick={toggleTheme}
               aria-label="Toggle theme"
               style={{ minHeight: 36, minWidth: 36 }}
@@ -133,6 +148,27 @@ export default function Home() {
         </div>
       </nav>
 
+      {/* Routines and sharing have no tab of their own; these two buttons keep
+          them reachable without adding navigation weight. */}
+      {tab === "today" && (
+        <div className={styles.quickActions}>
+          <button
+            type="button"
+            className={styles.quickAction}
+            onClick={() => setRoutinesOpen(true)}
+          >
+            🔁 {t("routines")}
+          </button>
+          <button
+            type="button"
+            className={styles.quickAction}
+            onClick={() => setShareOpen(true)}
+          >
+            👥 {t("accountabilityPartner")}
+          </button>
+        </div>
+      )}
+
       {tab === "today" ? (
         <TodayView />
       ) : tab === "tasks" ? (
@@ -141,8 +177,20 @@ export default function Home() {
         <StatsView />
       )}
 
-      {tab === "tasks" && <FAB onClick={() => setModalOpen(true)} label={t("newHabit")} />}
+      {/* The FAB used to render only on the Tasks tab, while the Today tab's
+          empty state said "Tap + to create one" — pointing at a button that
+          wasn't there. It is now available on both, labelled for what the tab
+          is about. */}
+      {tab !== "stats" && (
+        <FAB
+          onClick={() => setModalOpen(true)}
+          label={tab === "tasks" ? t("newTask") : t("newHabit")}
+        />
+      )}
       <CreateModal key={modalOpen ? "1" : "0"} open={modalOpen} onClose={() => setModalOpen(false)} />
+      <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <RoutinesSheet open={routinesOpen} onClose={() => setRoutinesOpen(false)} />
+      <ShareSheet open={shareOpen} onClose={() => setShareOpen(false)} />
     </div>
   );
 }

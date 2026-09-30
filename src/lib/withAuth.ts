@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { validateInitData } from "./validateInitData";
 import { createClient } from "@supabase/supabase-js";
+import { mintSession, verifySession, SESSION_HEADER } from "./session";
+import type { UserRow } from "./database.types";
 import jwt from "jsonwebtoken";
+
+export type { UserRow };
+
 export type AuthenticatedContext = {
   params: unknown;
   user: {
@@ -9,6 +14,8 @@ export type AuthenticatedContext = {
     telegram_id: number;
     supabase_token: string;
   };
+  /** The caller's full users row: timezone, chat_id, reminder preferences. */
+  profile: UserRow;
 };
 
 type Handler = (
@@ -59,26 +66,28 @@ export function withAuth(handler: Handler) {
 
     try {
       const initData = req.headers.get("x-telegram-init-data");
-      if (!initData)
-        return NextResponse.json(
-          { error: "Missing init data" },
-          { status: 401 },
-        );
+      const sessionToken = req.headers.get(SESSION_HEADER);
 
       let telegramUser: {
         id: number;
         first_name: string;
         username?: string;
         language_code?: string;
-      };
+      } | null = null;
 
-      if (isMockAuth(initData)) {
+      /** Set when the request was authenticated by a session token instead. */
+      let sessionUserId: string | null = null;
+      /** True when this request presented init data we can re-sign a session from. */
+      let authenticatedByInitData = false;
+
+      if (initData && isMockAuth(initData)) {
         telegramUser = {
           id: 1234567,
           first_name: "LocalDev",
           language_code: "en",
         };
-      } else {
+        authenticatedByInitData = true;
+      } else if (initData) {
         if (!botToken)
           return NextResponse.json(
             { error: "Server configuration error" },
@@ -86,70 +95,128 @@ export function withAuth(handler: Handler) {
           );
 
         const { isValid, user, reason } = validateInitData(initData, botToken);
-        if (!isValid || !user) {
+        if (isValid && user) {
+          telegramUser = user;
+          authenticatedByInitData = true;
+        } else if (reason !== "EXPIRED") {
+          // A genuinely bad HMAC is a hard failure: a session token must not
+          // rescue a forged or malformed payload.
           console.error("validateInitData failed:", {
             reason,
             initDataLen: initData.length,
             hasHash: initData.includes("hash="),
-            hasSignature: initData.includes("signature="),
             params: [...new URLSearchParams(initData).keys()],
           });
           return NextResponse.json(
-            {
-              // Distinguishable so the client can prompt a reopen instead of
-              // showing a generic failure. Only reachable with a valid HMAC
-              // that is merely old, so this leaks nothing to a forger.
-              error:
-                reason === "EXPIRED" ? "INIT_DATA_EXPIRED" : "Invalid init data",
-            },
+            { error: "Invalid init data" },
             { status: 401 },
           );
         }
-        telegramUser = user;
+        // EXPIRED falls through: the HMAC was valid, it is only old. The
+        // session token below can still carry the request.
       }
 
+      // Fall back to a session token when init data is missing or old. This is
+      // the Telegram Web case: the URL fragment never refreshes.
+      if (!telegramUser) {
+        const session = sessionToken ? verifySession(sessionToken) : null;
+        if (session) sessionUserId = session.userId;
+      }
+
+      if (!telegramUser && !sessionUserId) {
+        return NextResponse.json(
+          {
+            error: initData ? "INIT_DATA_EXPIRED" : "Missing init data",
+            // Tells the client to reopen from the bot rather than retry.
+            reopen: initData ? true : undefined,
+          },
+          { status: 401 },
+        );
+      }
+
+      const rateKey = telegramUser
+        ? telegramUser.id.toString()
+        : `session:${sessionUserId}`;
       const { ratelimit } = await import("./rateLimit");
-      const { success } = await ratelimit.limit(telegramUser.id.toString());
+      const { success, degraded } = await ratelimit.limit(rateKey);
+      if (degraded) console.error("rate limiter degraded for", rateKey);
       if (!success)
         return NextResponse.json({ error: "RATE_LIMITED" }, { status: 429 });
 
       const adminSupabase = createClient(supabaseUrl, serviceRoleKey);
-      const { data: dbUser, error: upsertError } = await adminSupabase
-        .from("users")
-        .upsert(
-          {
-            telegram_id: telegramUser.id,
-            first_name: telegramUser.first_name,
-            username: telegramUser.username,
-            language_code: telegramUser.language_code || "en",
-          },
-          { onConflict: "telegram_id" },
-        )
-        .select("id")
-        .single();
 
-      if (upsertError || !dbUser)
-        return NextResponse.json({ error: "DB Sync Error" }, { status: 500 });
+      let profile: UserRow | null = null;
+
+      if (telegramUser) {
+        // The device's timezone is authoritative: it is the most accurate
+        // signal available and it follows the user when they travel.
+        const tzHeader = req.headers.get("x-timezone");
+        const { data, error } = await adminSupabase
+          .from("users")
+          .upsert(
+            {
+              telegram_id: telegramUser.id,
+              first_name: telegramUser.first_name,
+              username: telegramUser.username,
+              language_code: telegramUser.language_code || "en",
+              last_active_at: new Date().toISOString(),
+              ...(tzHeader ? { timezone: tzHeader } : {}),
+            },
+            { onConflict: "telegram_id" },
+          )
+          .select("*")
+          .single();
+        if (error || !data)
+          return NextResponse.json({ error: "DB Sync Error" }, { status: 500 });
+        profile = data as UserRow;
+      } else {
+        const { data, error } = await adminSupabase
+          .from("users")
+          .select("*")
+          .eq("id", sessionUserId!)
+          .single();
+        if (error || !data)
+          return NextResponse.json({ error: "Invalid session" }, { status: 401 });
+        profile = data as UserRow;
+      }
 
       const customJwt = jwt.sign(
         {
           aud: "authenticated",
           exp: Math.floor(Date.now() / 1000) + 60 * 60,
-          sub: dbUser.id,
+          sub: profile.id,
           role: "authenticated",
         },
         jwtSecret,
       );
 
-      return await handler(req, {
+      const res = await handler(req, {
         params: ctx.params,
         user: {
-          internal_uuid: dbUser.id,
-          telegram_id: telegramUser.id,
+          internal_uuid: profile.id,
+          telegram_id: profile.telegram_id,
           supabase_token: customJwt,
         },
+        profile,
       });
-    } catch {
+
+      // Hand back a refreshed session token on init-data requests so the
+      // client's 30-day window slides forward as the app is used. Best effort:
+      // some Response objects have immutable headers.
+      if (authenticatedByInitData) {
+        const fresh = mintSession(profile.id, profile.telegram_id);
+        if (fresh) {
+          try {
+            res.headers.set(SESSION_HEADER, fresh);
+          } catch {
+            /* immutable headers; the client keeps its existing token */
+          }
+        }
+      }
+
+      return res;
+    } catch (err) {
+      console.error("withAuth threw:", err);
       return NextResponse.json(
         { error: "Internal server error" },
         { status: 500 },

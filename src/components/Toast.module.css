@@ -1,0 +1,87 @@
+.stack {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(16px + var(--safe-bottom, 0px));
+  /* Above the sheets (globals.css uses 200/201): a toast fired from inside an
+     open sheet — a failed save, an undo — must be visible, not hidden behind it. */
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(92vw, 420px);
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md, 12px);
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  font-size: 14px;
+  line-height: 1.35;
+  pointer-events: auto;
+  animation: toast-in 160ms ease-out;
+}
+
+.message {
+  flex: 1;
+  min-width: 0;
+}
+
+.info {
+  border-left: 3px solid var(--color-primary);
+}
+
+.success {
+  border-left: 3px solid var(--color-mood-happy);
+}
+
+.error {
+  border-left: 3px solid var(--color-mood-sad);
+}
+
+.action {
+  flex-shrink: 0;
+  background: transparent;
+  border: none;
+  color: var(--color-primary);
+  font-weight: 600;
+  font-size: 14px;
+  padding: 6px 8px;
+  min-height: 36px;
+  cursor: pointer;
+}
+
+.close {
+  flex-shrink: 0;
+  background: transparent;
+  border: none;
+  color: var(--color-muted);
+  font-size: 20px;
+  line-height: 1;
+  padding: 4px 6px;
+  cursor: pointer;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    animation: none;
+  }
+}

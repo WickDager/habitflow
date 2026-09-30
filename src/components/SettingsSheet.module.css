@@ -1,0 +1,192 @@
+/* SettingsSheet — the reminder preferences sheet.
+   The sheet chrome (overlay, container, handle, actions) comes from the global
+   classes in globals.css; only the contents live here. Everything tappable is
+   at least 44px tall: this app is used one-handed on phones. */
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+/* A toggle row: the whole row is the target, not just the switch. */
+.row,
+.fieldRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  width: 100%;
+  min-height: 56px;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  text-align: left;
+  transition: border-color 0.15s;
+}
+
+.row {
+  cursor: pointer;
+}
+
+.rowOn {
+  border-color: var(--color-primary);
+}
+
+.row:focus-visible,
+.fieldRow:focus-visible,
+.timeInput:focus-visible,
+.select:focus-visible,
+.numberSelect:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.rowText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.rowLabel {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.rowHint,
+.hint {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.35;
+  color: var(--color-muted);
+}
+
+/* The switch is decoration: the <button> above carries role="switch" and
+   aria-checked, so screen readers never see this half of the row. */
+.switch {
+  position: relative;
+  flex-shrink: 0;
+  width: 48px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  background: var(--color-muted);
+  transition: background 0.15s;
+}
+
+.switchOn {
+  background: var(--color-primary);
+}
+
+.knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-full);
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: transform 0.15s;
+}
+
+.knobOn {
+  transform: translateX(20px);
+}
+
+/* Time picker belonging to the toggle above it. */
+.timeRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  min-height: 44px;
+  padding-left: var(--space-md);
+  font-size: 0.9rem;
+  color: var(--color-muted);
+}
+
+.timeInput {
+  flex: 0 0 auto;
+  min-height: 44px;
+}
+
+.select {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+}
+
+/* Ends a field row, so it keeps its own width instead of taking the row's. */
+.numberSelect {
+  flex: 0 0 4.5rem;
+  min-height: 44px;
+}
+
+.quietGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-sm);
+}
+
+.quietField {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  min-width: 0;
+  font-size: 0.8rem;
+  color: var(--color-muted);
+}
+
+/* Amber, not red: this is a "you asked for it" warning, not an error. The text
+   stays the theme's own colour so it keeps its contrast in both themes. */
+.warning {
+  margin: 0;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
+  border: 1px solid color-mix(in srgb, var(--color-mood-neutral) 45%, transparent);
+  background: color-mix(in srgb, var(--color-mood-neutral) 18%, transparent);
+  font-size: 0.85rem;
+  line-height: 1.35;
+}
+
+.timezone {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.timezoneRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.timezoneValue {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.localTime {
+  font-family: var(--font-mono);
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .row,
+  .switch,
+  .knob {
+    transition: none;
+  }
+}
