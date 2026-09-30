@@ -36,12 +36,6 @@ export function addDays(value: string, days: number): string {
   return toDateString(d);
 }
 
-/** Difference in whole days between two YYYY-MM-DD strings (a - b). */
-export function daysBetween(a: string, b: string): number {
-  const ms = parseDateString(a).getTime() - parseDateString(b).getTime();
-  return Math.round(ms / 86400000);
-}
-
 /**
  * The calendar date right now in a named IANA timezone, e.g. "Europe/Berlin".
  * Falls back to UTC when the timezone is unknown or invalid.

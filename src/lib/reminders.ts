@@ -11,14 +11,6 @@ import { hourInTimezone, weekdayInTimezone, dateInTimezone } from "./dates";
 
 export type ReminderKind = "morning" | "nudge" | "evening" | "weekly" | "task";
 
-export const ALL_KINDS: ReminderKind[] = [
-  "morning",
-  "nudge",
-  "evening",
-  "weekly",
-  "task",
-];
-
 export function reminderKinds(user: Pick<UserRow, "reminder_kinds">): ReminderKinds {
   const raw = user.reminder_kinds;
   if (!raw || typeof raw !== "object") return {};
@@ -124,11 +116,14 @@ export function dedupeKey(
 /** Local hour+minute as "HH:MM", for comparing against a task's due_time. */
 export function localTimeInTimezone(tz: string, now: Date = new Date()): string {
   try {
+    // hourCycle h23, not hour12:false: some ICU builds report midnight as
+    // "24:00" with hour12 disabled, which would make a 00:00 task compare as
+    // 1440 minutes and never match its reminder window.
     return new Intl.DateTimeFormat("en-GB", {
       timeZone: tz || "UTC",
       hour: "2-digit",
       minute: "2-digit",
-      hour12: false,
+      hourCycle: "h23",
     }).format(now);
   } catch {
     return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;

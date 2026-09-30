@@ -2,10 +2,18 @@
   position: fixed;
   left: 50%;
   transform: translateX(-50%);
-  bottom: calc(16px + var(--safe-bottom, 0px));
-  /* Above the sheets (globals.css uses 200/201): a toast fired from inside an
-     open sheet — a failed save, an undo — must be visible, not hidden behind it. */
-  z-index: 300;
+  /* Top of the screen, just under the sticky nav. At the bottom the stack sat
+     directly on every sheet's Cancel/Save row (sheets pad to
+     calc(40px + safe)) for the toast's whole lifetime, so a tap on Save landed
+     on the toast body and was discarded — the user tapped again and nothing
+     happened. The top is also clear of the FAB, which owns bottom-right. */
+  top: calc(
+    var(--nav-height, 96px) + var(--space-sm, 8px) +
+      env(safe-area-inset-top, 0px)
+  );
+  /* Above the sheets (--z-sheet): a toast fired from inside an open sheet — a
+     failed save, an undo — must be visible, not hidden behind it. */
+  z-index: var(--z-toast, 300);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -25,7 +33,9 @@
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
   font-size: 14px;
   line-height: 1.35;
-  pointer-events: auto;
+  /* Inert: only the controls below take taps, so a live toast can never
+     swallow a tap meant for whatever is underneath it. */
+  pointer-events: none;
   animation: toast-in 160ms ease-out;
 }
 
@@ -56,6 +66,7 @@
   padding: 6px 8px;
   min-height: 36px;
   cursor: pointer;
+  pointer-events: auto;
 }
 
 .close {
@@ -67,12 +78,15 @@
   line-height: 1;
   padding: 4px 6px;
   cursor: pointer;
+  pointer-events: auto;
 }
 
+/* Comes down from above its resting place, so the motion points the same way
+   the stack is anchored. */
 @keyframes toast-in {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(-8px);
   }
   to {
     opacity: 1;

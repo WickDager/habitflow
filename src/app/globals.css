@@ -98,6 +98,30 @@
   }
 }
 
+/* ── Layering & bottom-chrome geometry ──
+   One scale for every stacked element. These used to be literals chosen
+   independently in three files (nav 50, FAB 100, sheet 200/201, toast 300), so
+   the order was impossible to check in one place. Toast stays last on purpose:
+   one fired from inside an open sheet must still be readable. */
+:root {
+  --z-nav: 50;
+  --z-fab: 100;
+  --z-sheet-overlay: 200;
+  --z-sheet: 201;
+  --z-toast: 300;
+
+  --fab-size: 56px;
+  --fab-offset: var(--space-lg);
+  /* What a bottom-pinned element has to leave free for the FAB: the button
+     itself, the gap under it, and a little air above it. */
+  --fab-clearance: calc(var(--fab-size) + var(--fab-offset) + var(--space-sm));
+
+  /* Height of the sticky .top-nav at its smallest: 8px padding + 36px header
+     row + 4px margin + 40px tab row + 8px padding. The toast stack anchors
+     just below it, so keep the two in sync. */
+  --nav-height: 96px;
+}
+
 /* ── Base ── */
 * {
   -webkit-tap-highlight-color: transparent;
@@ -124,11 +148,20 @@ body {
   to   { background-position: 200% 0; }
 }
 
+/* The row is only the layout: the shimmer belongs to the blocks inside it, so
+   the placeholder reads as a habit row — circle, two lines, trailing box —
+   instead of one undifferentiated shimmering bar. */
 .skeleton-row {
   display: flex;
   align-items: center;
   gap: var(--space-md);
   padding: var(--space-md) 0;
+  margin-bottom: var(--space-sm);
+}
+
+.skeleton-circle,
+.skeleton-line,
+.skeleton-box {
   animation: shimmer 1.4s infinite;
   background: linear-gradient(90deg,
     var(--color-surface) 25%,
@@ -136,15 +169,45 @@ body {
     var(--color-surface) 75%
   );
   background-size: 200% 100%;
+}
+
+/* Habit icon: same 40px box the real .habit-icon occupies, so the list does not
+   jump when the rows arrive. */
+.skeleton-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+.skeleton-lines {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+/* No width here: HabitSkeleton sets it with the Tailwind w-3/4 / w-1/3
+   utilities so the two lines have different lengths. */
+.skeleton-line {
+  height: 12px;
   border-radius: var(--radius-sm);
-  margin-bottom: var(--space-sm);
+}
+
+/* Stands in for the row's checkbox. */
+.skeleton-box {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  flex: 0 0 auto;
 }
 
 /* ── Top Nav Bar ── */
 .top-nav {
   position: sticky;
   top: 0;
-  z-index: 50;
+  z-index: var(--z-nav);
   background: color-mix(in srgb, var(--color-bg) 92%, transparent);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -229,14 +292,27 @@ body {
 }
 
 /* ── Today View ── */
+/* The bottom padding has to clear the FAB, which floats over the last 80px of
+   the viewport: without it the final row of every list parks under the button
+   and its tap target belongs to the FAB instead. */
 .today-view {
   padding: var(--space-md);
-  padding-bottom: calc(var(--space-xl) + env(safe-area-inset-bottom, 0));
+  padding-bottom: calc(
+    var(--fab-clearance) + var(--space-sm) + env(safe-area-inset-bottom, 0)
+  );
 }
 
+/* Was `background: var(--tg-hint)` — a token this app never defines, so the
+   declaration was dropped and the text was painted in --color-bg on the page
+   background: the offline notice was invisible. */
 .offline-banner {
-  background: var(--tg-hint);
-  color: var(--color-bg);
+  /* Surface + text tokens rather than muted-on-background: that pairing was
+     ~2.9:1 in the light theme, below WCAG AA, and this is the one message
+     telling the user their check-ins are queued rather than lost. The amber
+     rule keeps it noticeable now that it is no longer a filled banner. */
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-left: 3px solid var(--color-mood-neutral);
   padding: var(--space-sm) var(--space-md);
   border-radius: var(--radius-sm);
   font-size: 0.85rem;
@@ -407,9 +483,11 @@ body {
 }
 
 /* ── Save Button ── */
+/* Sticky, so it rests in the FAB's corner of the screen: pinned any lower its
+   right end sits under the button and the tap opens the New-habit sheet. */
 .save-btn-wrap {
   position: sticky;
-  bottom: calc(var(--space-md) + env(safe-area-inset-bottom, 0));
+  bottom: calc(var(--fab-clearance) + env(safe-area-inset-bottom, 0));
   margin-top: var(--space-lg);
   padding: var(--space-xs) 0;
 }
@@ -444,7 +522,9 @@ body {
   font-size: 1.5rem;
   font-weight: 600;
   min-height: 200px;
-  animation: fadeIn 0.3s ease-out;
+  /* Its own keyframes: fadeIn is opacity-only now, because the sheet backdrop
+     uses it and must never animate its transform (see below). */
+  animation: popIn 0.3s ease-out;
   flex-direction: column;
   gap: var(--space-sm);
 }
@@ -454,7 +534,15 @@ body {
   animation: bounce 0.6s ease-out;
 }
 
+/* Opacity only. This also animates .sheet-overlay, and a scale() there shrank
+   the dimmed backdrop to the middle 90% of the screen for 200ms — the page
+   flashed through at all four edges before the overlay covered it. */
 @keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes popIn {
   from { opacity: 0; transform: scale(0.9); }
   to   { opacity: 1; transform: scale(1); }
 }
@@ -712,10 +800,10 @@ body {
 /* ── FAB ── */
 .fab {
   position: fixed;
-  bottom: calc(var(--space-lg) + env(safe-area-inset-bottom, 0));
+  bottom: calc(var(--fab-offset) + env(safe-area-inset-bottom, 0));
   right: var(--space-lg);
-  min-height: 56px;
-  min-width: 56px;
+  min-height: var(--fab-size);
+  min-width: var(--fab-size);
   border-radius: 50%;
   background: var(--color-primary);
   color: var(--color-primary-text);
@@ -727,7 +815,7 @@ body {
   cursor: pointer;
   box-shadow: 0 4px 16px rgba(0,0,0,0.18);
   transition: transform 0.2s, box-shadow 0.2s;
-  z-index: 100;
+  z-index: var(--z-fab);
 }
 
 .fab:active {
@@ -740,7 +828,7 @@ body {
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,0.4);
-  z-index: 200;
+  z-index: var(--z-sheet-overlay);
   animation: fadeIn 0.2s ease-out;
 }
 
@@ -752,8 +840,14 @@ body {
   background: var(--color-bg);
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   padding: var(--space-sm) var(--space-md) calc(var(--space-xl) + env(safe-area-inset-bottom, 0));
-  z-index: 201;
+  z-index: var(--z-sheet);
+  /* 85vh measures the *large* viewport. The iOS WebView is not resized when
+     the keyboard opens, so with `bottom: 0` the scrollport's bottom edge sits
+     behind the keyboard and the last thing in a tall sheet — a Save row, a
+     Delete button — can never be scrolled into view. dvh follows the visible
+     viewport; the vh line stays first as the fallback for older engines. */
   max-height: 85vh;
+  max-height: 85dvh;
   overflow-y: auto;
   animation: slideUp 0.25s ease-out;
 }

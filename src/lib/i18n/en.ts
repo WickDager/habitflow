@@ -19,7 +19,6 @@ export const en = {
   // Habit aria-labels
   habitCompletedLabel: "completed",
   habitNotCompletedLabel: "not completed",
-  loadingHabitsLabel: "Loading habits…",
 
   // StatsView
   statsError: "Failed to load stats.",
@@ -31,7 +30,6 @@ export const en = {
   bestStreak: "best streak",
   totalCheckins: "total check-ins",
   perfectWeek: "All done! 100% this week.",
-  streakDays: "days",
 
   // Mood trend descriptions (for SVG aria-label)
   moodDescHappy: "happy",
@@ -48,9 +46,6 @@ export const en = {
   botReminderSettings: "Reminder settings:",
   botEnableReminders: "Enable reminders",
   botDisableReminders: "Disable reminders",
-  botReminderMessage:
-    "You haven’t checked in today. Tap below to log your habits.",
-  botLogHabits: "Log habits",
 
   // Settings / language
   language: "Language",
@@ -70,7 +65,6 @@ export const en = {
   noHabitsYet: "No habits yet. Tap + to create one.",
   cancel: "Cancel",
   habitNameLabel: "Habit name",
-  habitIconLabel: "Choose icon",
   editHabit: "Edit habit",
   deleteHabit: "Delete habit",
   deleteHabitConfirm: "Delete this habit? Your check-in history will be preserved.",
@@ -98,6 +92,7 @@ export const en = {
 
   // ── Settings / reminders ──
   settings: "Settings",
+  toggleTheme: "Toggle theme",
   reminders: "Reminders",
   reminderEnabledLabel: "Daily reminders",
   morningPlan: "Morning plan",
@@ -108,7 +103,6 @@ export const en = {
   middayNudgeHint: "One nudge if nothing is logged yet",
   weeklyReportLabel: "Weekly report",
   weeklyReportHint: "A recap every Sunday",
-  reminderTimes: "Times",
   timeMorning: "Morning",
   timeEvening: "Evening",
   timeNudge: "Nudge",
@@ -121,14 +115,10 @@ export const en = {
   timezoneHint: "Detected from your device",
   maxPerDayLabel: "Max messages per day",
   settingsSaved: "Settings saved",
-  settingsSaveFailed: "Couldn't save settings",
 
   // ── My Day ──
-  myDay: "My Day",
   habitsSection: "Habits",
   tasksSection: "Tasks",
-  pullIntoToday: "Pull into today",
-  noTasksToday: "No tasks due today.",
   dueToday: "Due today",
   overdue: "Overdue",
   rollOver: "Move to today",
@@ -139,14 +129,13 @@ export const en = {
   focusToday: "Focus today",
   focusHint: "Pick up to 3 habits that matter most today",
   focusLimitReached: "You can pick up to 3",
-  focusCleared: "Focus cleared",
 
   // ── Quick add ──
   quickAddPlaceholder: "Add a task — try \"call mom tomorrow 6pm\"",
   quickAddHint: "!1 for priority · #tag to label · tomorrow · fri 9am",
   add: "Add",
   taskAdded: "Task added",
-  parseFailed: "Couldn't understand that one",
+  habitAdded: "Habit added",
 
   // ── Priorities & tags ──
   priorityLabel: "Priority",
@@ -190,6 +179,7 @@ export const en = {
   routineDays: "Days",
   applyRoutine: "Apply",
   routineApplied: "{{count}} habits checked in",
+  routineNotScheduled: "This routine isn't scheduled for today",
   noRoutinesYet: "No routines yet. Bundle habits you always do together.",
   deleteRoutine: "Delete routine",
   everyDay: "Every day",
@@ -207,16 +197,12 @@ export const en = {
   share: "Share",
 
   // ── Streaks & motivation ──
-  streakMilestone: "{{count}} days of {{habit}}!",
-  streakAtRisk: "Your {{count}}-day streak is at risk — check in today.",
   graceDay: "Use a grace day",
   graceDayUsed: "Grace day used — streak protected",
   graceDayNone: "No grace days left this month",
   graceDayNotNeeded: "Your streak is already safe for yesterday",
   streakAtRiskTitle: "Streak at risk",
   graceDayHint: "Protects a streak for one missed day, once a month",
-  comebackTitle: "Ready to start again?",
-  comebackBody: "No catch-up needed. Pick one habit for today.",
 
   // ── Sharing / accountability ──
   accountabilityPartner: "Accountability partner",
@@ -229,6 +215,8 @@ export const en = {
   partnerTogether: "Together: {{count}} days",
   partnerCantInviteSelf: "You can't invite yourself",
   partnerNeedsStart: "They need to have started the bot first",
+  partnerIdPlaceholder: "Telegram user ID (numbers only)",
+  partnerYourId: "Your ID: {{id}}",
 
   // ── Bot messages ──
   botHelp:
@@ -237,7 +225,6 @@ export const en = {
   botNothingToday: "Nothing scheduled today. Enjoy it.",
   botDone: "Done",
   botLater: "Later",
-  botSkip: "Skip",
   botSnoozed: "Snoozed for an hour",
   botSkipped: "Skipped for today",
   botAdded: "Added: {{title}}",

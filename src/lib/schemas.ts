@@ -4,8 +4,12 @@ export const CheckinSchema = z.object({
   habit_id: z.string().uuid(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   completed: z.boolean(),
-  mood: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
-  notes: z.string().max(280).optional(),
+  // nullish, for the same reason as the todo fields below: both columns are
+  // nullable in the database, and `.optional()` accepts only undefined. No
+  // caller sends null today, but adding a "clear my mood" affordance would
+  // otherwise turn into a 400 — which is exactly how the todo version shipped.
+  mood: z.union([z.literal(1), z.literal(2), z.literal(3)]).nullish(),
+  notes: z.string().max(280).nullish(),
 });
 
 export const HabitSchema = z.object({

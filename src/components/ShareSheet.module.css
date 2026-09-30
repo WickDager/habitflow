@@ -1,55 +1,8 @@
-/* Accountability-partner sheet — self-contained styles, same sheet chrome and
-   theme variables as the rest of the app. */
-
-.overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.4);
-  z-index: 200;
-  animation: shareFade 0.2s ease-out;
-}
-
-.sheet {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: var(--color-bg);
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  padding: var(--space-sm) var(--space-md)
-    calc(var(--space-xl) + env(safe-area-inset-bottom, 0));
-  z-index: 201;
-  max-height: 85vh;
-  overflow-y: auto;
-  animation: shareSlide 0.25s ease-out;
-}
-
-@keyframes shareFade {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes shareSlide {
-  from {
-    transform: translateY(100%);
-  }
-  to {
-    transform: translateY(0);
-  }
-}
-
-.handle {
-  width: 36px;
-  height: 5px;
-  border-radius: 3px;
-  background: var(--color-muted);
-  margin: 0 auto var(--space-md);
-  opacity: 0.4;
-}
+/* Accountability-partner sheet — the sheet's own content, nothing else.
+   The chrome (.sheet-overlay / .bottom-sheet / .sheet-handle) comes from
+   globals.css: this file used to redeclare it, which is how the copies drifted
+   apart and why this sheet kept the scale()ing backdrop after the shared one
+   was fixed. Theme is read through the same variables as everywhere else. */
 
 .header {
   display: flex;
@@ -196,6 +149,13 @@
 .input:focus {
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px rgba(38, 120, 182, 0.12);
+}
+
+/* The placeholder is the only thing telling the user this field takes a
+   Telegram id; Firefox dims placeholders by default, so pin both. */
+.input::placeholder {
+  color: var(--color-muted);
+  opacity: 1;
 }
 
 .primaryBtn {

@@ -21,7 +21,6 @@ export const ru: Record<keyof typeof en, string> = {
   // Habit aria-labels
   habitCompletedLabel: "выполнено",
   habitNotCompletedLabel: "не выполнено",
-  loadingHabitsLabel: "Загрузка привычек…",
 
   // StatsView
   statsError: "Не удалось загрузить статистику.",
@@ -33,7 +32,6 @@ export const ru: Record<keyof typeof en, string> = {
   bestStreak: "лучшая серия",
   totalCheckins: "всего отметок",
   perfectWeek: "Идеальная неделя! 100%.",
-  streakDays: "дн",
 
   // Mood trend descriptions (for SVG aria-label)
   moodDescHappy: "отлично",
@@ -50,9 +48,6 @@ export const ru: Record<keyof typeof en, string> = {
   botReminderSettings: "Настройки напоминаний:",
   botEnableReminders: "Включить напоминания",
   botDisableReminders: "Отключить напоминания",
-  botReminderMessage:
-    "Вы ещё не отметили привычки сегодня. Нажмите кнопку ниже.",
-  botLogHabits: "Отметить привычки",
 
   // Settings / language
   language: "Язык",
@@ -72,7 +67,6 @@ export const ru: Record<keyof typeof en, string> = {
   noHabitsYet: "Нет привычек. Нажмите + чтобы создать.",
   cancel: "Отмена",
   habitNameLabel: "Название привычки",
-  habitIconLabel: "Выберите иконку",
   editHabit: "Редактировать",
   deleteHabit: "Удалить привычку",
   deleteHabitConfirm: "Удалить эту привычку? История отметок будет сохранена.",
@@ -100,6 +94,7 @@ export const ru: Record<keyof typeof en, string> = {
 
   // ── Настройки / напоминания ──
   settings: "Настройки",
+  toggleTheme: "Переключить тему",
   reminders: "Напоминания",
   reminderEnabledLabel: "Ежедневные напоминания",
   morningPlan: "Утренний план",
@@ -110,7 +105,6 @@ export const ru: Record<keyof typeof en, string> = {
   middayNudgeHint: "Одно напоминание, если ещё ничего не отмечено",
   weeklyReportLabel: "Недельный отчёт",
   weeklyReportHint: "Итоги каждое воскресенье",
-  reminderTimes: "Время",
   timeMorning: "Утро",
   timeEvening: "Вечер",
   timeNudge: "Напоминание",
@@ -123,14 +117,10 @@ export const ru: Record<keyof typeof en, string> = {
   timezoneHint: "Определяется по устройству",
   maxPerDayLabel: "Максимум сообщений в день",
   settingsSaved: "Настройки сохранены",
-  settingsSaveFailed: "Не удалось сохранить настройки",
 
   // ── Мой день ──
-  myDay: "Мой день",
   habitsSection: "Привычки",
   tasksSection: "Задачи",
-  pullIntoToday: "Добавить на сегодня",
-  noTasksToday: "На сегодня задач нет.",
   dueToday: "Сегодня",
   overdue: "Просрочено",
   rollOver: "Перенести на сегодня",
@@ -141,14 +131,13 @@ export const ru: Record<keyof typeof en, string> = {
   focusToday: "Фокус дня",
   focusHint: "Выберите до 3 привычек, важных сегодня",
   focusLimitReached: "Можно выбрать до 3",
-  focusCleared: "Фокус сброшен",
 
   // ── Быстрое добавление ──
   quickAddPlaceholder: "Добавить задачу — например «позвонить маме завтра в 18:00»",
   quickAddHint: "!1 — приоритет · #тег · завтра · пт 9:00",
   add: "Добавить",
   taskAdded: "Задача добавлена",
-  parseFailed: "Не удалось разобрать",
+  habitAdded: "Привычка добавлена",
 
   // ── Приоритеты и теги ──
   priorityLabel: "Приоритет",
@@ -192,6 +181,7 @@ export const ru: Record<keyof typeof en, string> = {
   routineDays: "Дни",
   applyRoutine: "Применить",
   routineApplied: "Отмечено привычек: {{count}}",
+  routineNotScheduled: "Эта рутина не запланирована на сегодня",
   noRoutinesYet: "Ритуалов пока нет. Объедините привычки, которые делаете вместе.",
   deleteRoutine: "Удалить ритуал",
   everyDay: "Каждый день",
@@ -209,16 +199,12 @@ export const ru: Record<keyof typeof en, string> = {
   share: "Поделиться",
 
   // ── Серии и мотивация ──
-  streakMilestone: "{{count}} дней: {{habit}}!",
-  streakAtRisk: "Серия {{count}} дней под угрозой — отметьтесь сегодня.",
   graceDay: "Использовать выходной",
   graceDayUsed: "Выходной использован — серия сохранена",
   graceDayNone: "В этом месяце выходных больше нет",
   graceDayNotNeeded: "Ваша серия и так в безопасности за вчера",
   streakAtRiskTitle: "Серия под угрозой",
   graceDayHint: "Сохраняет серию за один пропущенный день, раз в месяц",
-  comebackTitle: "Готовы начать снова?",
-  comebackBody: "Догонять не нужно. Выберите одну привычку на сегодня.",
 
   // ── Совместные привычки ──
   accountabilityPartner: "Партнёр",
@@ -231,6 +217,8 @@ export const ru: Record<keyof typeof en, string> = {
   partnerTogether: "Вместе: {{count}} дней",
   partnerCantInviteSelf: "Нельзя пригласить себя",
   partnerNeedsStart: "Сначала человек должен запустить бота",
+  partnerIdPlaceholder: "ID пользователя Telegram (только цифры)",
+  partnerYourId: "Ваш ID: {{id}}",
 
   // ── Сообщения бота ──
   botHelp:
@@ -239,7 +227,6 @@ export const ru: Record<keyof typeof en, string> = {
   botNothingToday: "На сегодня ничего не запланировано. Отдыхайте.",
   botDone: "Готово",
   botLater: "Позже",
-  botSkip: "Пропустить",
   botSnoozed: "Отложено на час",
   botSkipped: "Пропущено на сегодня",
   botAdded: "Добавлено: {{title}}",

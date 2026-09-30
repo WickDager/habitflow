@@ -50,28 +50,3 @@ export const POST = withAuth(async (req, ctx) => {
   if (!data) return Response.json({ error: "NOT_FOUND" }, { status: 404 });
   return Response.json(data);
 });
-
-export const DELETE = withAuth(async (req, ctx) => {
-  const id = new URL(req.url).searchParams.get("id");
-  if (!id) return Response.json({ error: "MISSING_ID" }, { status: 400 });
-
-  const sb = authenticatedClient(ctx.user.supabase_token);
-
-  // Scoped to the caller, and `.select()` so a tag that is not theirs (or no
-  // longer exists) answers 404 instead of a misleading 204.
-  const { data, error } = await sb
-    .from("tags")
-    .delete()
-    .eq("id", id)
-    .eq("user_id", ctx.user.internal_uuid)
-    .select("id");
-
-  if (error) return Response.json({ error: error.message }, { status: 500 });
-  if (!data || data.length === 0)
-    return Response.json({ error: "NOT_FOUND" }, { status: 404 });
-
-  // todo_tags has no user column and may not cascade with tags.
-  await sb.from("todo_tags").delete().eq("tag_id", id);
-
-  return new Response(null, { status: 204 });
-});

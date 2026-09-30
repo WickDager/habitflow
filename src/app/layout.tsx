@@ -15,7 +15,22 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full antialiased">
+    // suppressHydrationWarning: the inline script below adds a class to <html>
+    // before React hydrates, so the server's className and the client's differ
+    // by design.
+    <html lang="en" className="h-full antialiased" suppressHydrationWarning>
+      <head>
+        {/* Applies the stored theme before the first paint. globals.css defaults
+            to light while the app defaults to dark, so without this a
+            dark-preferring user saw a white frame on every open. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "try{var t=localStorage.getItem('habitflow-theme');" +
+              "if(t==='light'||t==='dark'){document.documentElement.classList.add(t)}}catch(e){}",
+          }}
+        />
+      </head>
       <body
         className="min-h-full flex flex-col safe-bottom"
         style={{ fontFamily: "var(--font-body)" }}

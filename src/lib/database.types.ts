@@ -57,7 +57,6 @@ export interface Database {
           reminder_kinds: ReminderKinds;
           morning_hour: number;
           evening_hour: number;
-          streak_freezes: number;
           freeze_month: string | null;
           last_active_at: string | null;
           created_at: string;
@@ -78,7 +77,6 @@ export interface Database {
           reminder_kinds?: ReminderKinds;
           morning_hour?: number;
           evening_hour?: number;
-          streak_freezes?: number;
           freeze_month?: string | null;
           last_active_at?: string | null;
           created_at?: string;

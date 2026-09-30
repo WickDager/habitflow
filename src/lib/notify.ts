@@ -383,62 +383,15 @@ export function composeWeekly(user: UserRow, week: WeekData, t: TranslateLike): 
   return { text, replyMarkup: openAppKeyboard(tr) };
 }
 
-// ── Public send helpers ──────────────────────────────────────────────────────
-// These compose AND send, and deliberately do not consult reminder_log or the
-// daily cap: they are for user-initiated paths (the bot answering /today), where
-// the user asked, so the once-per-day ledger must not suppress the reply.
-// Scheduled delivery goes through the tick engine, which claims first.
-
-async function deliver(user: UserRow, message: Message | null): Promise<boolean> {
-  if (!message || !user.chat_id) return false;
-  await sendMessage(user.chat_id, message.text, { replyMarkup: message.replyMarkup });
-  return true;
-}
-
-/** Morning plan. Returns true when a message was actually sent. */
-export async function sendMorningPlan(
-  user: UserRow,
-  profileData: DayData,
-  t: TranslateLike
-): Promise<boolean> {
-  return deliver(user, composeMorning(user, profileData, t));
-}
-
-/** Evening wrap-up with the mood buttons. */
-export async function sendEveningReview(
-  user: UserRow,
-  profileData: DayData,
-  t: TranslateLike
-): Promise<boolean> {
-  return deliver(user, composeEvening(user, profileData, t));
-}
-
-/** Midday nudge — only meaningful for someone who has logged nothing today. */
-export async function sendNudge(
-  user: UserRow,
-  profileData: DayData,
-  t: TranslateLike
-): Promise<boolean> {
-  return deliver(user, composeNudge(user, profileData, t));
-}
-
-/** Per-task reminder with [Done] / [Later]. */
-export async function sendTaskReminder(
-  user: UserRow,
-  todo: OpenTodo,
-  t: TranslateLike
-): Promise<boolean> {
-  return deliver(user, composeTask(user, todo, t));
-}
-
-/** Weekly recap. */
-export async function sendWeeklyReport(
-  user: UserRow,
-  week: WeekData,
-  t: TranslateLike
-): Promise<boolean> {
-  return deliver(user, composeWeekly(user, week, t));
-}
+// A parallel "compose AND send" helper set used to live here (deliver,
+// sendMorningPlan, sendEveningReview, sendNudge, sendTaskReminder,
+// sendWeeklyReport). Nothing called them: scheduled delivery goes through the
+// tick engine, which claims a reminder_log row before sending, and that is the
+// only path that should ever reach a chat unprompted. They were removed rather
+// than kept as convenience API because they bypassed claimSend/underDailyCap —
+// the first future caller on a scheduled path would have reintroduced the
+// duplicate-send bug the ledger exists to prevent. The compose* functions they
+// wrapped are still here and still used by the engine.
 
 // ── Etiquette: the delivery ledger ───────────────────────────────────────────
 
@@ -506,7 +459,10 @@ export async function countSendsToday(userId: string, localDate: string): Promis
 
 /** Under the user's daily message budget? */
 export async function underDailyCap(user: UserRow, localDate: string): Promise<boolean> {
-  const cap = user.max_daily_messages ?? 6;
+  // Matches the column default and the settings API's fallback. The column is
+  // NOT NULL so this is unreachable, but three different values across three
+  // files is how a "why did I get 6 messages" bug starts.
+  const cap = user.max_daily_messages ?? 3;
   if (cap <= 0) return false;
   return (await countSendsToday(user.id, localDate)) < cap;
 }

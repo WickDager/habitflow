@@ -3,7 +3,9 @@
 import { useState, useRef, useEffect } from "react";
 import { useSWRConfig } from "swr";
 import { apiFetch } from "@/lib/apiFetch";
+import { errorMessage } from "@/lib/errors";
 import { haptics } from "@/lib/haptics";
+import { useToast } from "@/components/Toast";
 import { useLanguage } from "@/lib/i18n";
 import { todayLocal } from "@/lib/dates";
 
@@ -18,6 +20,7 @@ const EMOJIS = ["🏃", "📚", "💧", "🧘", "💤", "🍎", "✍️", "🎯"
 
 export function CreateModal({ open, onClose }: CreateModalProps) {
   const { t } = useLanguage();
+  const { toast } = useToast();
   const { mutate } = useSWRConfig();
   const [step, setStep] = useState<CreateType>(null);
   const [name, setName] = useState("");
@@ -58,10 +61,17 @@ export function CreateModal({ open, onClose }: CreateModalProps) {
       // the Today view fetches with its own local date. A UTC key silently
       // misses the cache and leaves the new habit invisible until reload.
       await mutate("/api/checkins?date=" + todayLocal());
+      // The Focus chips render from /api/day, so without this a habit created
+      // here is missing from the Focus picker until a reload.
+      await mutate(`/api/day?date=${todayLocal()}`);
+      // There is no "habit added" key to use here; the generic success string
+      // is what this path has. The toast matters because the modal closing is
+      // otherwise the only signal, and on Telegram Web haptics are a no-op.
+      toast(t("habitAdded"), { kind: "success" });
       onClose();
-    } catch {
+    } catch (err) {
       haptics.error();
-      setError(t("saveFailed"));
+      setError(errorMessage(err, t));
     } finally {
       setSaving(false);
     }
@@ -80,11 +90,22 @@ export function CreateModal({ open, onClose }: CreateModalProps) {
         body: JSON.stringify(body),
       });
       haptics.success();
-      await mutate("/api/todos");
+      // A function matcher, not "/api/todos": the todo lists are all
+      // subscribed to under a query string (/api/todos?filter=all), and a
+      // string key only ever matches itself, so the old call revalidated
+      // nothing and the new task stayed invisible until a tab switch.
+      await mutate(
+        (key) => typeof key === "string" && key.startsWith("/api/todos")
+      );
+      // The Today tab's task section reads /api/day, a different key again.
+      await mutate(`/api/day?date=${todayLocal()}`);
+      // Visible confirmation: without it a successful save looks exactly like
+      // nothing happening, which is how duplicate tasks get created.
+      toast(t("taskAdded"), { kind: "success" });
       onClose();
-    } catch {
+    } catch (err) {
       haptics.error();
-      setError(t("saveFailed"));
+      setError(errorMessage(err, t));
     } finally {
       setSaving(false);
     }

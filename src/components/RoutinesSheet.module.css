@@ -1,56 +1,8 @@
-/* Routines sheet — self-contained styles.
-   Mirrors the shared sheet chrome in globals.css but keeps everything local,
-   and reads the theme through the same CSS variables so light/dark just work. */
-
-.overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.4);
-  z-index: 200;
-  animation: routFade 0.2s ease-out;
-}
-
-.sheet {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: var(--color-bg);
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  padding: var(--space-sm) var(--space-md)
-    calc(var(--space-xl) + env(safe-area-inset-bottom, 0));
-  z-index: 201;
-  max-height: 85vh;
-  overflow-y: auto;
-  animation: routSlide 0.25s ease-out;
-}
-
-@keyframes routFade {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes routSlide {
-  from {
-    transform: translateY(100%);
-  }
-  to {
-    transform: translateY(0);
-  }
-}
-
-.handle {
-  width: 36px;
-  height: 5px;
-  border-radius: 3px;
-  background: var(--color-muted);
-  margin: 0 auto var(--space-md);
-  opacity: 0.4;
-}
+/* Routines sheet — the sheet's own content, nothing else.
+   The chrome (.sheet-overlay / .bottom-sheet / .sheet-handle) comes from
+   globals.css: this file used to redeclare it, which is how the copies drifted
+   apart and why this sheet kept the scale()ing backdrop after the shared one
+   was fixed. Theme is read through the same CSS variables as everywhere else. */
 
 .header {
   display: flex;
