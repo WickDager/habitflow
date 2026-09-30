@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
 import { haptics } from "@/lib/haptics";
 import { useLanguage } from "@/lib/i18n";
+import { useEscapeToClose, useSheetDrag } from "./useSheetDrag";
 import styles from "./FocusPicker.module.css";
 
 /**
@@ -40,16 +40,10 @@ export function FocusPicker({
   onClose,
 }: FocusPickerProps) {
   const { t } = useLanguage();
-
-  useEffect(() => {
-    if (!open) return;
-    // Desktop Telegram Web: Escape is the expected way out of a sheet.
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [open, onClose]);
+  // The drag on the handle joins the overlay, the Save button and Escape.
+  const { sheetRef, dragStyle, handleProps } = useSheetDrag({ open, onClose });
+  // Desktop Telegram Web: Escape is the expected way out of a sheet.
+  useEscapeToClose(onClose, open);
 
   if (!open) return null;
 
@@ -60,11 +54,13 @@ export function FocusPicker({
       <div className="sheet-overlay" onClick={onClose} aria-hidden="true" />
       <div
         className="bottom-sheet"
+        ref={sheetRef}
+        style={dragStyle}
         role="dialog"
         aria-modal="true"
         aria-label={t("focusToday")}
       >
-        <div className="sheet-handle" />
+        <div className="sheet-handle" {...handleProps} />
 
         <div className={styles.head}>
           <h3 className={styles.title}>{t("focusToday")}</h3>

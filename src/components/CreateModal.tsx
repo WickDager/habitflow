@@ -8,6 +8,8 @@ import { haptics } from "@/lib/haptics";
 import { useToast } from "@/components/Toast";
 import { useLanguage } from "@/lib/i18n";
 import { todayLocal } from "@/lib/dates";
+import { EmojiPicker } from "./EmojiPicker";
+import { useEscapeToClose, useSheetDrag } from "./useSheetDrag";
 
 type CreateType = "habit" | "task" | null;
 
@@ -16,12 +18,15 @@ interface CreateModalProps {
   onClose: () => void;
 }
 
-const EMOJIS = ["🏃", "📚", "💧", "🧘", "💤", "🍎", "✍️", "🎯", "💻", "🧹"];
-
 export function CreateModal({ open, onClose }: CreateModalProps) {
   const { t } = useLanguage();
   const { toast } = useToast();
   const { mutate } = useSWRConfig();
+  // Dismissal by drag on the handle, and by Escape. The handle used to be
+  // decorative, and Escape was missing here entirely — between them a sheet
+  // could only be left with the overlay or a Cancel button.
+  const { sheetRef, dragStyle, handleProps } = useSheetDrag({ open, onClose });
+  useEscapeToClose(onClose, open);
   const [step, setStep] = useState<CreateType>(null);
   const [name, setName] = useState("");
   const [icon, setIcon] = useState("🏃");
@@ -116,8 +121,14 @@ export function CreateModal({ open, onClose }: CreateModalProps) {
   return (
     <>
       <div className="sheet-overlay" onClick={onClose} aria-hidden="true" />
-      <div className="bottom-sheet" role="dialog" aria-modal="true">
-        <div className="sheet-handle" />
+      <div
+        className="bottom-sheet"
+        ref={sheetRef}
+        style={dragStyle}
+        role="dialog"
+        aria-modal="true"
+      >
+        <div className="sheet-handle" {...handleProps} />
 
         {!step ? (
           <div className="sheet-options">
@@ -151,19 +162,7 @@ export function CreateModal({ open, onClose }: CreateModalProps) {
               maxLength={50}
               onKeyDown={(e) => e.key === "Enter" && handleCreateHabit()}
             />
-            <div className="emoji-picker">
-              {EMOJIS.map((e) => (
-                <button
-                  key={e}
-                  className={`emoji-option ${icon === e ? "selected" : ""}`}
-                  onClick={() => setIcon(e)}
-                  aria-label={e}
-                  style={{ minHeight: 44, minWidth: 44 }}
-                >
-                  {e}
-                </button>
-              ))}
-            </div>
+            <EmojiPicker value={icon} onChange={setIcon} />
             {error && <p className="sheet-error">{error}</p>}
             <div className="sheet-actions">
               <button

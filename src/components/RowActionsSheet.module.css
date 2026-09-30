@@ -1,0 +1,34 @@
+/**
+ * Row menu.
+ *
+ * The sheet itself is built from the global sheet classes (sheet-overlay,
+ * bottom-sheet, sheet-handle, sheet-form, sheet-options, sheet-option-btn,
+ * sheet-cancel-btn) so it behaves and looks like its neighbours. Only the two
+ * things globals.css has no answer for live here.
+ */
+
+/* Which row the menu belongs to. Four anonymous verbs would leave the user
+   checking which ⋯ they tapped. */
+.subject {
+  margin: 0 0 var(--space-md);
+  font-size: 0.9rem;
+  color: var(--color-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Scoped to the global class on purpose: both rules are a single class, so
+   without the extra weight the surface colour could win depending on
+   stylesheet order — the same reason the overdue badge is written this way. */
+:global(.sheet-option-btn).danger {
+  color: var(--color-delete);
+  border-color: color-mix(in srgb, var(--color-delete) 45%, transparent);
+}
+
+/* The action that does not apply to the row's current state: still readable,
+   visibly not the one to press. */
+:global(.sheet-option-btn):disabled {
+  opacity: 0.4;
+  cursor: default;
+}

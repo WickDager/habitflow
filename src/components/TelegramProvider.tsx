@@ -88,27 +88,32 @@ function getTelegramValue(): TelegramContextValue {
   return { user: null, initData: "", isReady: false, checked: true };
 }
 
-function applyTheme() {
-  let theme: Record<string, string> | undefined;
+/**
+ * The app is dark-only, so Telegram's own theme is deliberately ignored.
+ *
+ * This used to copy Telegram's `themeParams` (or the `tgWebAppThemeParams`
+ * fragment on Web) onto <html> as `--tg-theme-*` *inline* styles. Inline custom
+ * properties outrank any stylesheet rule, which is exactly why the old
+ * light/dark toggle appeared to do nothing: the class flipped and the inline
+ * values kept winning. With them gone, the palette in globals.css is the single
+ * source of truth.
+ *
+ * The chrome is still matched to the app, so the WebView's header and the area
+ * behind the content don't flash a light colour against a dark page. Both calls
+ * are optional-chained: they are newer Bot API methods and Telegram Web has no
+ * `window.Telegram` at all.
+ */
+const DARK_CHROME = "#1c1c1e";
 
-  const tgTheme = window.Telegram?.WebApp?.themeParams;
-  if (tgTheme) {
-    theme = tgTheme as Record<string, string>;
-  } else {
-    // Telegram Web: theme params in URL fragment
-    const raw = parseHashParam(window.location.hash, "tgWebAppThemeParams");
-    if (raw) {
-      try {
-        theme = JSON.parse(decodeURIComponent(raw));
-      } catch { /* ignore */ }
-    }
+function applyChrome() {
+  const wa = window.Telegram?.WebApp;
+  if (!wa) return;
+  try {
+    wa.setHeaderColor?.(DARK_CHROME);
+    wa.setBackgroundColor?.(DARK_CHROME);
+  } catch {
+    /* older clients: the palette still applies, only the chrome stays default */
   }
-
-  if (!theme) return;
-  Object.entries(theme).forEach(([k, v]) => {
-    const cssVar = "--tg-theme-" + k.replace(/_/g, "-");
-    document.documentElement.style.setProperty(cssVar, v);
-  });
 }
 
 export function TelegramProvider({ children }: { children: ReactNode }) {
@@ -126,17 +131,13 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    applyTheme();
+    applyChrome();
 
     const wa = window.Telegram?.WebApp;
     if (!wa) return;
     wa.expand();
-    const handler = () => applyTheme();
-    wa.onEvent("themeChanged", handler);
     wa.ready();
-    return () => {
-      wa.offEvent("themeChanged", handler);
-    };
+    // No themeChanged listener: there is no theme to follow any more.
   }, []);
 
   return (

@@ -8,6 +8,8 @@ import { haptics } from "@/lib/haptics";
 import { useToast } from "@/components/Toast";
 import { useLanguage } from "@/lib/i18n";
 import { todayLocal } from "@/lib/dates";
+import { EmojiPicker } from "./EmojiPicker";
+import { useEscapeToClose, useSheetDrag } from "./useSheetDrag";
 
 interface Habit {
   id: string;
@@ -20,12 +22,18 @@ interface EditHabitSheetProps {
   onClose: () => void;
 }
 
-const EMOJIS = ["🏃", "📚", "💧", "🧘", "💤", "🍎", "✍️", "🎯", "💻", "🧹"];
-
 export function EditHabitSheet({ habit, onClose }: EditHabitSheetProps) {
   const { t } = useLanguage();
   const { toast } = useToast();
   const { mutate } = useSWRConfig();
+  // There is no `open` prop here — a habit in hand is what "open" means, and
+  // the sheet renders null without one. Drag on the handle and Escape are the
+  // two dismissals the overlay and the buttons did not cover.
+  const { sheetRef, dragStyle, handleProps } = useSheetDrag({
+    open: habit !== null,
+    onClose,
+  });
+  useEscapeToClose(onClose, habit !== null);
   const [name, setName] = useState(habit?.name ?? "");
   const [icon, setIcon] = useState(habit?.icon ?? "");
   const [saving, setSaving] = useState(false);
@@ -100,8 +108,14 @@ export function EditHabitSheet({ habit, onClose }: EditHabitSheetProps) {
         onClick={onClose}
         aria-hidden="true"
       />
-      <div className="bottom-sheet" role="dialog" aria-modal="true">
-        <div className="sheet-handle" />
+      <div
+        className="bottom-sheet"
+        ref={sheetRef}
+        style={dragStyle}
+        role="dialog"
+        aria-modal="true"
+      >
+        <div className="sheet-handle" {...handleProps} />
 
         <div className="sheet-form">
           <h3 className="sheet-form-title">{t("editHabit")}</h3>
@@ -115,19 +129,7 @@ export function EditHabitSheet({ habit, onClose }: EditHabitSheetProps) {
             maxLength={50}
             onKeyDown={(e) => e.key === "Enter" && handleSave()}
           />
-          <div className="emoji-picker">
-            {EMOJIS.map((e) => (
-              <button
-                key={e}
-                className={`emoji-option ${icon === e ? "selected" : ""}`}
-                onClick={() => setIcon(e)}
-                aria-label={e}
-                style={{ minHeight: 44, minWidth: 44 }}
-              >
-                {e}
-              </button>
-            ))}
-          </div>
+          <EmojiPicker value={icon} onChange={setIcon} />
 
           {error && <p className="sheet-error">{error}</p>}
 

@@ -74,6 +74,32 @@
   transition: none;
 }
 
+/* ── Row menu ──
+   The ⋯ that opens RowActionsSheet, at the end of every row. It is the way in
+   that works with a mouse: the swipe above it needs a finger, and on Telegram
+   Web most people have neither a finger nor any haptic feedback to tell them
+   the swipe even happened. */
+.rowMenuBtn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-muted);
+  font-size: 1.3rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.rowMenuBtn:active {
+  transform: scale(0.94);
+}
+
 /* ── Row details ── */
 .prioDot {
   flex-shrink: 0;

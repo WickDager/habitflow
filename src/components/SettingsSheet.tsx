@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import useSWR from "swr";
 import { apiFetch } from "@/lib/apiFetch";
 import { errorMessage } from "@/lib/errors";
@@ -10,6 +10,7 @@ import { useToast } from "@/components/Toast";
 import { isKindEnabled, isQuietHour } from "@/lib/reminders";
 import { toTimeString } from "@/lib/dates";
 import type { ReminderKinds } from "@/lib/database.types";
+import { useEscapeToClose, useSheetDrag } from "./useSheetDrag";
 import styles from "./SettingsSheet.module.css";
 
 /**
@@ -167,6 +168,17 @@ function SettingsSheetBody({ onClose }: { onClose: () => void }) {
   const { toast } = useToast();
   const titleId = useId();
 
+  // This body only exists while the sheet is open — see the wrapper above — so
+  // `open` is a constant here. The hook still takes it: it is what tells the
+  // drag to clear anything it left on the node.
+  const { sheetRef, dragStyle, handleProps } = useSheetDrag({
+    open: true,
+    onClose,
+  });
+  // Escape already worked here; it now comes from the helper all seven sheets
+  // share, so the behaviour cannot drift between them.
+  useEscapeToClose(onClose);
+
   const {
     data,
     error: loadError,
@@ -187,14 +199,6 @@ function SettingsSheetBody({ onClose }: { onClose: () => void }) {
     () => (data ? { ...toDraft(data), ...edits } : null),
     [data, edits]
   );
-
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
 
   /**
    * True when the quiet window would cover every slot that is actually switched
@@ -269,11 +273,13 @@ function SettingsSheetBody({ onClose }: { onClose: () => void }) {
       <div className="sheet-overlay" onClick={onClose} aria-hidden="true" />
       <div
         className="bottom-sheet"
+        ref={sheetRef}
+        style={dragStyle}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
       >
-        <div className="sheet-handle" />
+        <div className="sheet-handle" {...handleProps} />
 
         <div className="sheet-form">
           <h3 className="sheet-form-title" id={titleId}>

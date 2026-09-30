@@ -271,3 +271,29 @@
 .swipeDragging {
   transition: none;
 }
+
+/* ── Row menu ──
+   The ⋯ that opens RowActionsSheet, at the end of every row. Sized here rather
+   than inline because it is the module's own class, and it is the reliable way
+   to reach a row's actions: the swipe above it needs a finger, and on Telegram
+   Web most people are on a mouse. */
+.rowMenuBtn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-muted);
+  font-size: 1.3rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.rowMenuBtn:active {
+  transform: scale(0.94);
+}

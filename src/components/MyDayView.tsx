@@ -20,6 +20,7 @@ import { HabitSkeleton } from "./HabitSkeleton";
 import { EditHabitSheet } from "./EditHabitSheet";
 import { EditTaskSheet } from "./EditTaskSheet";
 import { FocusPicker } from "./FocusPicker";
+import { RowActionsSheet } from "./RowActionsSheet";
 import styles from "./MyDayView.module.css";
 
 /**
@@ -79,6 +80,18 @@ const CHECKIN_BATCH = 20;
 
 /** How far a row slides to reveal the delete target. */
 const REVEAL_PX = 88;
+
+/**
+ * How far a finger has to travel, and how much more of that travel has to be
+ * sideways than up-and-down, before a gesture counts as a swipe.
+ *
+ * Without both tests a scroll is the hazard: the list scrolls vertically, but
+ * a thumb arcs sideways on the way down, and once that drift passes the reveal
+ * threshold the row opens a delete target the user never asked for. A tap is
+ * the other half — it has to be impossible for one to be read as a drag.
+ */
+const SWIPE_MIN_PX = 10;
+const SWIPE_INTENT_RATIO = 1.5;
 
 /**
  * POST check-ins in the batches the route accepts.
@@ -145,6 +158,13 @@ export function MyDayView() {
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
   const [editingTask, setEditingTask] = useState<TodoRow | null>(null);
   const [focusOpen, setFocusOpen] = useState(false);
+  /**
+   * The row whose ⋯ menu is open. Held as the row itself rather than as an id
+   * — the menu's Edit needs the object, and its Delete needs the row to build
+   * the undo payload from — the same way editingHabit/editingTask work.
+   */
+  const [menuHabit, setMenuHabit] = useState<Habit | null>(null);
+  const [menuTask, setMenuTask] = useState<TodoRow | null>(null);
   /** The row currently swiped open, and the one asking to be deleted. */
   const [openId, setOpenId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -152,8 +172,11 @@ export function MyDayView() {
 
   const swipeRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const swipeStartX = useRef(0);
+  const swipeStartY = useRef(0);
   const swipeCurrentX = useRef(0);
   const swipeActiveId = useRef<string | null>(null);
+  /** Set once a gesture has proved itself a swipe — see SWIPE_MIN_PX. */
+  const swipeIsDrag = useRef(false);
   /** Mirrors openId so the close helper can stay stable across renders. */
   const openRowId = useRef<string | null>(null);
   const flushing = useRef(false);
@@ -239,8 +262,6 @@ export function MyDayView() {
     [habits]
   );
 
-  const allCompleted =
-    safeHabits.length > 0 && safeHabits.every((h) => isCompleted(h.id));
   const completedCount = safeHabits.filter((h) => isCompleted(h.id)).length;
   const progressPct = safeHabits.length
     ? Math.round((completedCount / safeHabits.length) * 100)
@@ -391,9 +412,16 @@ export function MyDayView() {
     void flushPending();
   }, [flushPending]);
 
-  const toggleHabit = useCallback(
-    async (habitId: string) => {
-      const current = isCompleted(habitId);
+  /**
+   * Write one habit's state for today, in either direction.
+   *
+   * The direction is a parameter rather than a flip of what is on screen: the
+   * checkbox wants a flip, but the ⋯ menu offers "Mark done" and "Mark undone"
+   * as two separate promises, and a flip would quietly deliver the opposite
+   * for either of them if the row's state had moved on since the menu opened.
+   */
+  const setHabitCompleted = useCallback(
+    async (habitId: string, completed: boolean) => {
       haptics.light();
 
       const optimistic = safeHabits.map((h) =>
@@ -404,7 +432,7 @@ export function MyDayView() {
                 {
                   habit_id: h.id,
                   date: today,
-                  completed: !current,
+                  completed,
                 },
               ],
             }
@@ -418,9 +446,7 @@ export function MyDayView() {
           await apiFetch("/api/checkins", {
             method: "POST",
             body: JSON.stringify({
-              checkins: [
-                { habit_id: habitId, date: today, completed: !current },
-              ],
+              checkins: [{ habit_id: habitId, date: today, completed }],
             }),
           });
           await mutate(checkinsKey);
@@ -433,36 +459,104 @@ export function MyDayView() {
       } else {
         const pending: CheckinDraft[] = (await getPendingCheckins()) ?? [];
         const idx = pending.findIndex((p) => p.habit_id === habitId);
-        if (idx >= 0) pending[idx].completed = !current;
+        if (idx >= 0) pending[idx].completed = completed;
         else
           pending.push({
             habit_id: habitId,
             date: today,
-            completed: !current,
+            completed,
           });
         await savePendingCheckins(pending);
       }
     },
-    [checkinsKey, dayKey, isCompleted, mutate, offline, safeHabits, t, today, toast]
+    [checkinsKey, dayKey, mutate, offline, safeHabits, t, today, toast]
   );
 
+  const toggleHabit = useCallback(
+    (habitId: string) => setHabitCompleted(habitId, !isCompleted(habitId)),
+    [isCompleted, setHabitCompleted]
+  );
+
+  /**
+   * Whether today has ever shown a task on this screen.
+   *
+   * /api/day lists *open* tasks only — a finished one leaves the list the
+   * moment it is ticked — so "the day had tasks" cannot be read off the
+   * current response. Without this, someone who keeps only tasks would tick
+   * their last one and get nothing at all: by then both lists are empty, and
+   * the day looks exactly like one that never had anything in it.
+   */
+  const [sawTasks, setSawTasks] = useState(false);
   useEffect(() => {
-    if (allCompleted && habits && habits.length > 0) {
-      haptics.success();
+    // Latches on, never off for the life of the screen: the question is
+    // whether the day *had* work in it, not whether it has any now. Set from
+    // an effect because it is a fact about the past that arrives with the
+    // data — and it cannot turn `everythingDone` true early, since a non-empty
+    // task list fails that test on its own.
+    /* eslint-disable-next-line react-hooks/set-state-in-effect */
+    if (tasks.length > 0) setSawTasks(true);
+  }, [tasks]);
+
+  /**
+   * The end of the day, in one boolean.
+   *
+   * It used to be habits only, so a day with every habit ticked and tasks
+   * still open got the confetti — and the celebration replaces the whole view,
+   * which took the outstanding tasks off the screen with it. Now it takes over
+   * only when there is genuinely nothing left: every habit done, and nothing
+   * open on the task list (that list holds open tasks alone, so an empty one
+   * *is* every task done). A day with only one of the two still celebrates
+   * once that one is finished; a day that never had either does not celebrate
+   * at all.
+   */
+  const everythingDone =
+    (safeHabits.length > 0 || sawTasks) &&
+    safeHabits.every((h) => isCompleted(h.id)) &&
+    tasks.length === 0;
+
+  /** Latches the celebration to the crossing, not to the state. */
+  const celebrated = useRef(false);
+
+  useEffect(() => {
+    if (!everythingDone) {
+      // Re-arm, and take the overlay down with it: this effect's own cleanup
+      // has already cleared the timer that would have hidden it, so a day that
+      // stops being done mid-celebration would otherwise leave it up for good.
+      celebrated.current = false;
       /* eslint-disable-next-line react-hooks/set-state-in-effect */
-      setShowCelebration(true);
+      setShowCelebration(false);
+      return;
+    }
+    // Every revalidation hands back fresh arrays for unchanged facts, which is
+    // what used to fire this on every fetch. The dependency is the derived
+    // boolean — stable across those fetches — and the latch covers the day
+    // that flaps back and forth.
+    if (celebrated.current) return;
+    celebrated.current = true;
+
+    haptics.success();
+    setShowCelebration(true);
+    // The burst is the part worth skipping for someone who has asked their
+    // system for less movement; the overlay and its timer still say "all done".
+    if (
+      typeof window.matchMedia !== "function" ||
+      !window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
       confetti({
         particleCount: 100,
         spread: 70,
         origin: { x: 0.5, y: 0.5 },
         colors: ["#34c759", "#ff9f0a", "#2678b6", "#ff3b30"],
       });
-      const timer = setTimeout(() => setShowCelebration(false), 1800);
-      return () => clearTimeout(timer);
     }
-  }, [allCompleted, habits]);
+    const timer = setTimeout(() => setShowCelebration(false), 1800);
+    return () => clearTimeout(timer);
+  }, [everythingDone]);
 
-  /** The red target only asks the question; the confirm block deletes. */
+  /**
+   * The red target and the ⋯ menu's Delete both only ask the question; the
+   * confirm block under the row is what deletes.
+   */
   const requestDelete = useCallback(
     (habitId: string) => {
       haptics.medium();
@@ -482,8 +576,9 @@ export function MyDayView() {
    * sort_order, so a "restore" could only re-create a brand new habit, without
    * its check-in history and without its focus pin. That is a worse lie than
    * asking first, so the swipe is two steps (slide, then confirm) and the
-   * delete reports itself with a toast. Confirming is also the shape of the
-   * delete in EditHabitSheet, so the swipe and the sheet agree.
+   * ⋯ menu's Delete is two steps as well (pick Delete, then confirm in the
+   * same block under the row). Confirming is also the shape of the delete in
+   * EditHabitSheet, so all three agree.
    */
   const deleteHabit = useCallback(
     async (habitId: string) => {
@@ -615,6 +710,109 @@ export function MyDayView() {
     [dayKey, mutate, setTaskCompleted, t, toast]
   );
 
+  /**
+   * The other direction, for someone who ticked a task by mistake.
+   *
+   * completeTask() is a one-way door — it drops the row from the day and
+   * offers only its own undo — so the ⋯ menu's "Mark undone" needs its own
+   * path back: PATCH the flag off and let the day refetch bring the row back
+   * where it belongs.
+   */
+  const uncompleteTask = useCallback(
+    async (task: TodoRow) => {
+      haptics.medium();
+      try {
+        await setTaskCompleted(task, false);
+        haptics.success();
+        toast(t("saved"), { kind: "success" });
+      } catch (err) {
+        haptics.error();
+        toast(errorMessage(err, t), { kind: "error" });
+        await mutate(dayKey);
+      }
+    },
+    [dayKey, mutate, setTaskCompleted, t, toast]
+  );
+
+  /** Put a just-deleted task back, the way the toast's Undo promises. */
+  const restoreTask = useCallback(
+    async (task: TodoRow) => {
+      try {
+        await apiFetch("/api/todos", {
+          method: "POST",
+          body: JSON.stringify({
+            title: task.title,
+            due_date: task.due_date,
+            due_time: task.due_time,
+            priority: task.priority,
+            notes: task.notes,
+            subtasks: task.subtasks ?? [],
+            recurrence: task.recurrence,
+            // No tags: /api/day returns bare todo rows and does not attach the
+            // todo_tags side table, so there is nothing here to restore them
+            // from. An untagged task back is a better trade than a round trip
+            // per row on the screen the app opens on.
+          }),
+        });
+        await mutate(dayKey);
+        await refreshTodoLists();
+      } catch (err) {
+        haptics.error();
+        toast(errorMessage(err, t), { kind: "error" });
+      }
+    },
+    [dayKey, mutate, refreshTodoLists, t, toast]
+  );
+
+  /**
+   * Delete a task optimistically, and offer to undo it.
+   *
+   * Where a habit can only be archived (see deleteHabit), a task can genuinely
+   * be put back: DELETE /api/todos/:id drops the row and POST /api/todos
+   * writes an equivalent one, so the honest gesture here is the reversible
+   * one. The restored task carries a new id and lands at the end of its list,
+   * which is the same trade TasksView already makes.
+   */
+  const deleteTask = useCallback(
+    async (task: TodoRow) => {
+      haptics.medium();
+
+      // Gone from both lists at once: it is deleted, so leaving it on screen
+      // until the request lands makes the menu feel stuck.
+      await mutate(
+        dayKey,
+        (current?: DayResponse) =>
+          current
+            ? {
+                ...current,
+                tasks: current.tasks.filter((item) => item.id !== task.id),
+                overdue: current.overdue.filter((item) => item.id !== task.id),
+                rollsOverdueCount: current.overdue.filter(
+                  (item) => item.id !== task.id
+                ).length,
+              }
+            : current,
+        false
+      );
+
+      try {
+        await apiFetch(`/api/todos/${task.id}`, { method: "DELETE" });
+        haptics.success();
+        toast(t("deleted"), {
+          kind: "success",
+          action: { label: t("undo"), onClick: () => void restoreTask(task) },
+        });
+        await mutate(dayKey);
+        await refreshTodoLists();
+      } catch (err) {
+        haptics.error();
+        toast(errorMessage(err, t), { kind: "error" });
+        await mutate(dayKey);
+      }
+    },
+    [dayKey, mutate, refreshTodoLists, restoreTask, t, toast]
+  );
+
   const rollOver = useCallback(
     async (ids?: string[]) => {
       haptics.medium();
@@ -694,6 +892,93 @@ export function MyDayView() {
     void mutate(dayKey);
   }, [dayKey, mutate]);
 
+  /* ── The ⋯ row menu ──
+     Habits and tasks share one menu, so the two are held in separate slots and
+     only one is ever set. Each handler takes the row out of state before it
+     runs: the sheet has done its job the moment a verb is chosen, and a menu
+     left open over a row that has already changed would be lying about it. */
+  const closeRowMenu = useCallback(() => {
+    setMenuHabit(null);
+    setMenuTask(null);
+  }, []);
+
+  /**
+   * Opening the menu puts the swipe reveal away first.
+   *
+   * A slid-open row is a live delete target underneath the sheet — two delete
+   * affordances for one row, one of them hidden. The reveal is also what the
+   * owner could not reach with a mouse in the first place.
+   */
+  const openHabitMenu = useCallback(
+    (habit: Habit) => {
+      haptics.select();
+      closeOpenRow();
+      setMenuHabit(habit);
+    },
+    [closeOpenRow]
+  );
+
+  const openTaskMenu = useCallback(
+    (task: TodoRow) => {
+      haptics.select();
+      closeOpenRow();
+      setMenuTask(task);
+    },
+    [closeOpenRow]
+  );
+
+  const menuMarkDone = useCallback(() => {
+    const habit = menuHabit;
+    const task = menuTask;
+    closeRowMenu();
+    if (habit) void setHabitCompleted(habit.id, true);
+    else if (task) void completeTask(task);
+  }, [closeRowMenu, completeTask, menuHabit, menuTask, setHabitCompleted]);
+
+  const menuMarkUndone = useCallback(() => {
+    const habit = menuHabit;
+    const task = menuTask;
+    closeRowMenu();
+    if (habit) void setHabitCompleted(habit.id, false);
+    else if (task) void uncompleteTask(task);
+  }, [closeRowMenu, menuHabit, menuTask, setHabitCompleted, uncompleteTask]);
+
+  const menuEdit = useCallback(() => {
+    const habit = menuHabit;
+    const task = menuTask;
+    closeRowMenu();
+    if (habit) setEditingHabit(habit);
+    else if (task) setEditingTask(task);
+  }, [closeRowMenu, menuHabit, menuTask]);
+
+  const menuDelete = useCallback(() => {
+    const habit = menuHabit;
+    const task = menuTask;
+    closeRowMenu();
+    // A habit delete cannot be reversed (see deleteHabit), so the menu hands
+    // off to the same confirm block the swipe opens instead of doing it here.
+    // A task delete can be, so it goes straight through with an undo.
+    if (habit) requestDelete(habit.id);
+    else if (task) void deleteTask(task);
+  }, [closeRowMenu, deleteTask, menuHabit, menuTask, requestDelete]);
+
+  /** The open row in the shape RowActionsSheet takes, or null for closed. */
+  const rowMenuTarget = menuHabit
+    ? {
+        id: menuHabit.id,
+        title: menuHabit.name,
+        completed: isCompleted(menuHabit.id),
+        kind: "habit" as const,
+      }
+    : menuTask
+      ? {
+          id: menuTask.id,
+          title: menuTask.title,
+          completed: menuTask.is_completed,
+          kind: "task" as const,
+        }
+      : null;
+
   const moodOptions: { value: Mood; labelKey: string; emoji: string }[] = [
     { value: 1, labelKey: "moodHappy", emoji: "😊" },
     { value: 2, labelKey: "moodNeutral", emoji: "😐" },
@@ -772,6 +1057,20 @@ export function MyDayView() {
           onClick={() => completeTask(task)}
           style={{ minHeight: 44, minWidth: 44 }}
         />
+
+        <button
+          type="button"
+          className={styles.rowMenuBtn}
+          onClick={(e) => {
+            // The row's own tap target sits right beside this one; a click
+            // that reached it would open the editor behind the menu.
+            e.stopPropagation();
+            openTaskMenu(task);
+          }}
+          aria-label={`${t("rowActions")}: ${task.title}`}
+        >
+          ⋯
+        </button>
       </li>
     );
   };
@@ -926,13 +1225,20 @@ export function MyDayView() {
                         <div
                           className={`habit-row ${styles.swipeRow}`}
                           ref={(el) => {
+                            // A row that leaves the list has to leave the map:
+                            // its offset lives on its own node, and a detached
+                            // node is one nothing can ever reset.
                             if (el) swipeRefs.current.set(habit.id, el);
+                            else swipeRefs.current.delete(habit.id);
                           }}
                           onTouchStart={(e) => {
                             if (openRowId.current && openRowId.current !== habit.id)
                               closeOpenRow();
-                            swipeStartX.current = e.touches[0].clientX;
+                            const touch = e.touches[0];
+                            swipeStartX.current = touch.clientX;
+                            swipeStartY.current = touch.clientY;
                             swipeCurrentX.current = 0;
+                            swipeIsDrag.current = false;
                             swipeActiveId.current = habit.id;
                             // .habit-row transitions transform over 200ms, which
                             // makes the row lag behind the finger; dragging
@@ -943,9 +1249,25 @@ export function MyDayView() {
                           }}
                           onTouchMove={(e) => {
                             if (swipeActiveId.current !== habit.id) return;
+                            const touch = e.touches[0];
+                            const dx = touch.clientX - swipeStartX.current;
+                            const dy = touch.clientY - swipeStartY.current;
+
+                            if (!swipeIsDrag.current) {
+                              // Nothing moves until the gesture has proved it
+                              // is a swipe: not a tap, and not the sideways
+                              // drift of a thumb scrolling the list.
+                              if (Math.abs(dx) < SWIPE_MIN_PX) return;
+                              if (
+                                Math.abs(dx) <
+                                Math.abs(dy) * SWIPE_INTENT_RATIO
+                              )
+                                return;
+                              swipeIsDrag.current = true;
+                            }
+
                             const base = revealedId === habit.id ? -REVEAL_PX : 0;
-                            let diff =
-                              e.touches[0].clientX - swipeStartX.current + base;
+                            let diff = dx + base;
                             if (diff > 0) diff = 0;
                             if (diff < -REVEAL_PX) diff = -REVEAL_PX;
                             swipeCurrentX.current = diff;
@@ -954,14 +1276,37 @@ export function MyDayView() {
                           onTouchEnd={() => {
                             if (swipeActiveId.current !== habit.id) return;
                             swipeActiveId.current = null;
+                            // The transition comes back before the offset
+                            // moves, so the snap-back animates.
                             swipeRefs.current
                               .get(habit.id)
                               ?.classList.remove(styles.swipeDragging);
+                            // A gesture that never dragged — a tap, or a scroll
+                            // the browser owns — leaves the list as it found it.
                             const shouldOpen =
-                              swipeCurrentX.current < -REVEAL_PX / 2;
+                              swipeIsDrag.current &&
+                              swipeCurrentX.current <= -REVEAL_PX / 2;
+                            swipeIsDrag.current = false;
                             setRowOffset(habit.id, shouldOpen ? -REVEAL_PX : 0);
                             if (shouldOpen) openRow(habit.id);
                             else closeOpenRow();
+                          }}
+                          onTouchCancel={() => {
+                            // The browser took the gesture back for a scroll, and
+                            // no touchend is coming: this is the only place the
+                            // drag state can be cleared. Without it swipeDragging
+                            // sticks to the row and it keeps an
+                            // instant-snap transform for the rest of the session.
+                            if (swipeActiveId.current !== habit.id) return;
+                            swipeActiveId.current = null;
+                            swipeIsDrag.current = false;
+                            swipeRefs.current
+                              .get(habit.id)
+                              ?.classList.remove(styles.swipeDragging);
+                            setRowOffset(
+                              habit.id,
+                              openRowId.current === habit.id ? -REVEAL_PX : 0
+                            );
                           }}
                         >
                           <button
@@ -997,6 +1342,21 @@ export function MyDayView() {
                             style={{ minHeight: 44, minWidth: 44 }}
                           >
                             {isCompleted(habit.id) && <CheckMark />}
+                          </button>
+
+                          <button
+                            type="button"
+                            className={styles.rowMenuBtn}
+                            onClick={(e) => {
+                              // The row's own tap target sits right beside this
+                              // one; a click that reached it would open the
+                              // editor behind the menu.
+                              e.stopPropagation();
+                              openHabitMenu(habit);
+                            }}
+                            aria-label={`${t("rowActions")}: ${habit.name}`}
+                          >
+                            ⋯
                           </button>
                         </div>
                       </div>
@@ -1092,6 +1452,18 @@ export function MyDayView() {
         limit={FOCUS_LIMIT}
         onToggle={toggleFocus}
         onClose={() => setFocusOpen(false)}
+      />
+
+      {/* Keyed by the row's id, like the sheets above: the menu has to mount
+          onto the row that was tapped rather than keep the previous one's. */}
+      <RowActionsSheet
+        key={menuHabit?.id ?? menuTask?.id ?? "empty"}
+        target={rowMenuTarget}
+        onMarkDone={menuMarkDone}
+        onMarkUndone={menuMarkUndone}
+        onEdit={menuEdit}
+        onDelete={menuDelete}
+        onClose={closeRowMenu}
       />
     </div>
   );
