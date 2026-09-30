@@ -25,14 +25,17 @@ export async function GET(request: Request) {
   for (let i = 0; i < users.length; i++) {
     const u = users[i];
 
-    const { data: checkins } = await sb
+    const { count } = await sb
       .from("checkins")
       .select("id", { count: "exact", head: true })
       .eq("user_id", u.id)
       .eq("date", today)
       .eq("completed", true);
 
-    if (checkins && checkins.length > 0) continue;
+    // head: true sends a HEAD request, so data comes back null and the row
+    // count arrives in `count`. Testing `data` here was always null, which made
+    // this guard dead code and reminded every user daily regardless.
+    if (count && count > 0) continue;
 
     try {
       await sendMiniAppButton(

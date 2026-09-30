@@ -6,9 +6,13 @@ import { apiFetch } from "@/lib/apiFetch";
 import { useLanguage } from "@/lib/i18n";
 import { HabitSkeleton } from "./HabitSkeleton";
 
+// Mirrors the habit_streaks row shape in src/lib/database.types.ts.
+// This read total_completions, a column of the v2 materialized view that
+// supabase-schema.sql drops when it creates the v3 table — so the value was
+// always undefined and both streak cards rendered 0 for every user.
 interface StreakData {
   habit_id: string;
-  total_completions: number;
+  current_streak: number;
   last_completed: string;
 }
 
@@ -238,14 +242,14 @@ export function StatsView() {
   if (!data) return null;
 
   const activeStreaks = (data.streaks ?? []).filter(
-    (s) => (s.total_completions ?? 0) > 0
+    (s) => (s.current_streak ?? 0) > 0
   );
   const bestStreak =
     activeStreaks.length > 0
-      ? Math.max(...activeStreaks.map((s) => s.total_completions ?? 0))
+      ? Math.max(...activeStreaks.map((s) => s.current_streak ?? 0))
       : 0;
   const totalCheckins = activeStreaks.reduce(
-    (sum, s) => sum + (s.total_completions ?? 0),
+    (sum, s) => sum + (s.current_streak ?? 0),
     0
   );
 
