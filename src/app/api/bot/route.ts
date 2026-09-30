@@ -15,6 +15,16 @@ function botT(langCode: string | undefined) {
 }
 
 export async function GET(request: Request) {
+  // Debug endpoints only — the bot and the client never call this. Gate them
+  // behind the same bearer secret as the cron route, failing closed when it is
+  // unset: otherwise "Bearer undefined" would match a missing CRON_SECRET.
+  const cronSecret = process.env.CRON_SECRET;
+  if (
+    !cronSecret ||
+    request.headers.get("authorization") !== `Bearer ${cronSecret}`
+  )
+    return new Response("Unauthorized", { status: 401 });
+
   const url = new URL(request.url);
   const testChatId = url.searchParams.get("test_chat_id");
 
