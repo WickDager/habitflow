@@ -6,6 +6,7 @@ import { apiFetch } from "@/lib/apiFetch";
 import { errorMessage, type Translate } from "@/lib/errors";
 import { haptics } from "@/lib/haptics";
 import { useToast } from "@/components/Toast";
+import { useTelegram } from "@/components/TelegramProvider";
 import { useLanguage } from "@/lib/i18n";
 import styles from "./ShareSheet.module.css";
 
@@ -67,6 +68,13 @@ function inviteError(err: unknown, t: Translate): string {
 export function ShareSheet({ open, onClose, habitId = null }: ShareSheetProps) {
   const { t } = useLanguage();
   const { toast } = useToast();
+  /**
+   * The id the partner has to type. Telegram gives it to the client — through
+   * window.Telegram natively and through the tgWebAppData URL fragment on
+   * Telegram Web — so no request is needed. Null outside Telegram, and then the
+   * line is simply not rendered.
+   */
+  const { user } = useTelegram();
 
   const [selected, setSelected] = useState<string | null>(null);
   const [telegramId, setTelegramId] = useState("");
@@ -101,6 +109,7 @@ export function ShareSheet({ open, onClose, habitId = null }: ShareSheetProps) {
 
   const habitOptions = habits ?? [];
   const list = shares ?? [];
+  const myTelegramId = user?.id ?? null;
 
   // Prefer the pinned habit, then whatever was picked, then the first one.
   const activeHabitId = habitId ?? selected ?? habitOptions[0]?.id ?? null;
@@ -192,9 +201,11 @@ export function ShareSheet({ open, onClose, habitId = null }: ShareSheetProps) {
 
   return (
     <>
-      <div className={styles.overlay} onClick={onClose} aria-hidden="true" />
-      <div className={styles.sheet} role="dialog" aria-modal="true">
-        <div className={styles.handle} />
+      {/* Chrome from globals.css, not a local copy: the two sheets used to
+          carry their own overlay/sheet rules and drifted from the shared ones. */}
+      <div className="sheet-overlay" onClick={onClose} aria-hidden="true" />
+      <div className="bottom-sheet" role="dialog" aria-modal="true">
+        <div className="sheet-handle" />
 
         <div className={styles.header}>
           <div>
@@ -344,6 +355,8 @@ export function ShareSheet({ open, onClose, habitId = null }: ShareSheetProps) {
                 {activeHabit?.name ?? t("accountabilityPartner")}
               </p>
               <div className={styles.inviteRow}>
+                {/* Nothing said what this box wanted: it was a bare numeric
+                    field whose only label was for screen readers. */}
                 <input
                   className={styles.input}
                   type="text"
@@ -353,7 +366,8 @@ export function ShareSheet({ open, onClose, habitId = null }: ShareSheetProps) {
                   onChange={(event) =>
                     setTelegramId(event.target.value.replace(/\D/g, ""))
                   }
-                  aria-label={t("partnerInvite")}
+                  placeholder={t("partnerIdPlaceholder")}
+                  aria-label={t("partnerIdPlaceholder")}
                 />
                 <button
                   type="button"
@@ -364,6 +378,14 @@ export function ShareSheet({ open, onClose, habitId = null }: ShareSheetProps) {
                   {t("partnerInvite")}
                 </button>
               </div>
+              {/* The invite takes the partner's numeric Telegram id, which the
+                  app otherwise never shows — so show the user their own, to
+                  copy and send. */}
+              {myTelegramId ? (
+                <p className={styles.hint}>
+                  {t("partnerYourId", { id: myTelegramId })}
+                </p>
+              ) : null}
               {error && <p className={styles.error}>{error}</p>}
             </div>
           </>

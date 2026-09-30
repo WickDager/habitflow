@@ -26,8 +26,3 @@ export function errorMessage(err: unknown, t: Translate): string {
   }
   return t("saveFailed");
 }
-
-/** True when the user must reopen the Mini App from the bot to continue. */
-export function needsReopen(err: unknown): boolean {
-  return err instanceof ApiError && (err.reopen || err.status === 401);
-}

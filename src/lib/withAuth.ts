@@ -36,6 +36,23 @@ function isMockAuth(initData: string): boolean {
   return initData === mockData;
 }
 
+/**
+ * The x-timezone header is just a header — anyone can send anything — and its
+ * value is written straight into users.timezone, which the streak trigger feeds
+ * to Postgres' `at time zone`. An unresolvable name there would raise inside an
+ * AFTER trigger and make every check-in insert for that user fail. The SQL side
+ * also falls back defensively; this stops the bad value being stored at all.
+ */
+function sanitizeTimezone(value: string | null): string | null {
+  if (!value || value.length > 64) return null;
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: value });
+    return value;
+  } catch {
+    return null;
+  }
+}
+
 export function withAuth(handler: Handler) {
   return async (req: Request, ctx: NextRouteContext) => {
     const jwtSecret = process.env.SUPABASE_JWT_SECRET;
@@ -150,7 +167,7 @@ export function withAuth(handler: Handler) {
       if (telegramUser) {
         // The device's timezone is authoritative: it is the most accurate
         // signal available and it follows the user when they travel.
-        const tzHeader = req.headers.get("x-timezone");
+        const tzHeader = sanitizeTimezone(req.headers.get("x-timezone"));
         const { data, error } = await adminSupabase
           .from("users")
           .upsert(

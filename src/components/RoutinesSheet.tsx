@@ -109,8 +109,8 @@ export function RoutinesSheet({ open, onClose }: RoutinesSheetProps) {
 
   /**
    * Applying a routine writes today's check-ins, so every view that reads them
-   * has to refresh. Matched by prefix instead of by exact key: the day view
-   * builds its key from its own idea of "today" and we would miss it.
+   * has to refresh. Matched by prefix instead of by exact key: each of those
+   * views builds its key from its own idea of "today" and we would miss it.
    */
   const revalidateDay = () =>
     mutate(
@@ -119,7 +119,12 @@ export function RoutinesSheet({ open, onClose }: RoutinesSheetProps) {
           typeof key === "string" ? key : Array.isArray(key) ? key[0] : null;
         return (
           typeof path === "string" &&
-          (path.startsWith("/api/checkins") || path.startsWith("/api/streak"))
+          (path.startsWith("/api/checkins") ||
+            path.startsWith("/api/streak") ||
+            // The day view's key is /api/day?date=…, and the Focus chips read
+            // their streak badge from it. Neither of the prefixes above matches
+            // it, so the badge stayed stale after Apply.
+            path.startsWith("/api/day"))
         );
       },
       undefined,
@@ -172,19 +177,26 @@ export function RoutinesSheet({ open, onClose }: RoutinesSheetProps) {
   const apply = async (routine: Routine) => {
     setBusyId(routine.id);
     try {
-      const result = await apiFetch<{ applied: number }>(
+      const result = await apiFetch<{ applied: number; scheduled: boolean }>(
         `/api/routines/${routine.id}/apply`,
         // No date: the server uses the user's own calendar day.
         { method: "POST", body: JSON.stringify({}) }
       );
       haptics.success();
       await revalidateDay();
-      toast(
-        result.applied > 0
-          ? t("routineApplied", { count: result.applied })
-          : t("saved"),
-        { kind: "success" }
-      );
+      if (!result.scheduled) {
+        // A routine with fixed days answers scheduled: false on a weekday it is
+        // not planned for. Nothing was written, so "Saved" would claim a change
+        // that never happened.
+        toast(t("routineNotScheduled"), { kind: "info" });
+      } else {
+        toast(
+          result.applied > 0
+            ? t("routineApplied", { count: result.applied })
+            : t("saved"),
+          { kind: "success" }
+        );
+      }
     } catch (err) {
       haptics.error();
       toast(errorMessage(err, t), { kind: "error" });
@@ -254,9 +266,11 @@ export function RoutinesSheet({ open, onClose }: RoutinesSheetProps) {
 
   return (
     <>
-      <div className={styles.overlay} onClick={onClose} aria-hidden="true" />
-      <div className={styles.sheet} role="dialog" aria-modal="true">
-        <div className={styles.handle} />
+      {/* Chrome from globals.css, not a local copy: the two sheets used to
+          carry their own overlay/sheet rules and drifted from the shared ones. */}
+      <div className="sheet-overlay" onClick={onClose} aria-hidden="true" />
+      <div className="bottom-sheet" role="dialog" aria-modal="true">
+        <div className="sheet-handle" />
 
         {formOpen ? (
           <div className={styles.form}>

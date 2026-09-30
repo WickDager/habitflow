@@ -109,31 +109,3 @@ export const POST = withAuth(async (req, ctx) => {
     toggled: true,
   });
 });
-
-export const DELETE = withAuth(async (req, ctx) => {
-  const date = resolveDate(new URL(req.url).searchParams.get("date"), ctx);
-  const userId = ctx.user.internal_uuid;
-  const sb = authenticatedClient(ctx.user.supabase_token);
-
-  // Read before deleting: the client needs the ids to offer an undo, and a
-  // DELETE does not report which rows it removed.
-  const cleared = await focusIdsFor(sb, userId, date);
-  if (cleared.error)
-    return Response.json({ error: cleared.error }, { status: 500 });
-
-  if (cleared.ids.length > 0) {
-    const { error } = await sb
-      .from("daily_focus")
-      .delete()
-      .eq("user_id", userId)
-      .eq("date", date);
-    if (error) return Response.json({ error: error.message }, { status: 500 });
-  }
-
-  return Response.json({
-    date,
-    focus: [],
-    cleared: cleared.ids.length,
-    clearedHabitIds: cleared.ids,
-  });
-});

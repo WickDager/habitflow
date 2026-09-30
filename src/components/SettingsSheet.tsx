@@ -244,9 +244,11 @@ function SettingsSheetBody({ onClose }: { onClose: () => void }) {
       setEdits({});
       await mutate(updated, { revalidate: false });
       toast(t("settingsSaved"), { kind: "success" });
-      // Close so the toast can be seen: the toast stack sits at z-index 60,
-      // below an open sheet (200+).
-      onClose();
+      // Deliberately stays open. It used to close here purely so the success
+      // toast would be visible — the toast was at z-index 60, under the sheet.
+      // It now sits at the top of the screen at z-index 300, above an open
+      // sheet, so the reason is gone; and a settings screen that disappears
+      // mid-adjustment is worse than one that stays put.
     } catch (err) {
       haptics.error();
       // Reverting the optimistic change means dropping the edits: the fetched

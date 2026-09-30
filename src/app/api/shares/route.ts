@@ -3,8 +3,7 @@ import { withAuth, type AuthenticatedContext } from "@/lib/withAuth";
 import { authenticatedClient, serverClient } from "@/lib/supabase";
 import { sendMiniAppButton } from "@/lib/telegram";
 import { addDays, dateInTimezone } from "@/lib/dates";
-import { en } from "@/lib/i18n/en";
-import { ru } from "@/lib/i18n/ru";
+import { dictionaryFor } from "@/lib/i18n/dictionary";
 
 /**
  * Accountability partners (habit_shares).
@@ -242,7 +241,9 @@ export const POST = withAuth(async (req, ctx: AuthenticatedContext) => {
   // Tell them, but never fail the invite because Telegram is unhappy. The
   // invitee reads this in their own language, not the inviter's.
   if (notify && target.chat_id && share?.status === "pending") {
-    const dict = target.language_code === "ru" ? ru : en;
+    // Was `=== "ru" ? ru : en`, which sent an English invite to Ukrainian and
+    // Belarusian speakers while the rest of the app served them Russian.
+    const dict = dictionaryFor(target.language_code);
     const text =
       `${escapeHtml(ctx.profile.first_name)}: ` +
       `${habit.icon ?? "🎯"} <b>${escapeHtml(habit.name)}</b>\n` +

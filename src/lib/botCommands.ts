@@ -710,9 +710,13 @@ async function writeMood(
 
   if (!habit) return false;
 
+  // DO NOTHING, not DO UPDATE: this is a seed for a day with no check-ins, and
+  // the row it might collide with can belong to an accountability partner.
+  // A plain upsert would resolve the conflict by rewriting that row's user_id
+  // to this user and stamping a mood onto their completion.
   const { error: seedError } = await db.from("checkins").upsert(
     { user_id: user.id, habit_id: habit.id, date, completed: false, mood },
-    { onConflict: "habit_id, date" }
+    { onConflict: "habit_id, date", ignoreDuplicates: true }
   );
   if (seedError) {
     console.error("bot mood seed failed:", seedError.message);
@@ -743,6 +747,29 @@ async function writeHabitCheckin(
     .maybeSingle();
 
   if (!habit) return null;
+
+  // checkins is unique on (habit_id, date), so a shared habit has ONE row per
+  // day, and it may be the partner's. A plain upsert resolves that conflict
+  // with an UPDATE, which would reassign the row's user_id to whoever tapped
+  // and clobber their completion — or, on an Undo tap, erase it outright.
+  //
+  // ignoreDuplicates is not the fix here (unlike the seed above): this path
+  // must still update the caller's OWN row so Undo can clear it. So read the
+  // existing row first and leave a partner's day alone — it already counts as
+  // completed for both of them.
+  const { data: existing, error: readError } = await db
+    .from("checkins")
+    .select("user_id")
+    .eq("habit_id", habit.id)
+    .eq("date", date)
+    .maybeSingle();
+
+  if (readError) {
+    console.error("bot checkin read failed:", readError.message);
+    return null;
+  }
+
+  if (existing && existing.user_id !== user.id) return habit.name;
 
   const { error } = await db
     .from("checkins")

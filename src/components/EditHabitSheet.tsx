@@ -3,10 +3,11 @@
 import { useState, useEffect, useRef } from "react";
 import { useSWRConfig } from "swr";
 import { apiFetch } from "@/lib/apiFetch";
+import { errorMessage } from "@/lib/errors";
 import { haptics } from "@/lib/haptics";
+import { useToast } from "@/components/Toast";
 import { useLanguage } from "@/lib/i18n";
 import { todayLocal } from "@/lib/dates";
-import { errorMessage } from "@/lib/errors";
 
 interface Habit {
   id: string;
@@ -23,6 +24,7 @@ const EMOJIS = ["🏃", "📚", "💧", "🧘", "💤", "🍎", "✍️", "🎯"
 
 export function EditHabitSheet({ habit, onClose }: EditHabitSheetProps) {
   const { t } = useLanguage();
+  const { toast } = useToast();
   const { mutate } = useSWRConfig();
   const [name, setName] = useState(habit?.name ?? "");
   const [icon, setIcon] = useState(habit?.icon ?? "");
@@ -52,6 +54,10 @@ export function EditHabitSheet({ habit, onClose }: EditHabitSheetProps) {
       // Must match the Today view's SWR key exactly, or the edited habit stays
       // stale in the list. That key is built from the local day.
       await mutate(`/api/checkins?date=${todayLocal()}`);
+      // The Focus chips render from /api/day, so renaming here has to
+      // revalidate that key too or the chip keeps the old name. MyDayView
+      // mutates the same key after its own swipe-delete.
+      await mutate(`/api/day?date=${todayLocal()}`);
       onClose();
     } catch (err) {
       haptics.error();
@@ -72,10 +78,15 @@ export function EditHabitSheet({ habit, onClose }: EditHabitSheetProps) {
       haptics.success();
       await mutate(`/api/checkins?date=${todayLocal()}`);
       await mutate("/api/checkins/stats");
+      // Same reason as the rename above: the deleted habit keeps its Focus chip
+      // until /api/day is revalidated, and tapping that chip then fails with
+      // HABIT_NOT_FOUND. The day's habit list is stale for the same reason.
+      await mutate(`/api/day?date=${todayLocal()}`);
+      toast(t("deleted"), { kind: "success" });
       onClose();
     } catch (err) {
       haptics.error();
-      setError(t("saveFailed"));
+      setError(errorMessage(err, t));
       console.error("Delete habit failed:", err);
     } finally {
       setDeleting(false);

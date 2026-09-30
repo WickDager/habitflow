@@ -18,6 +18,7 @@ import { useLanguage } from "@/lib/i18n";
 import type { TodoRow } from "@/lib/database.types";
 import { HabitSkeleton } from "./HabitSkeleton";
 import { EditHabitSheet } from "./EditHabitSheet";
+import { EditTaskSheet } from "./EditTaskSheet";
 import { FocusPicker } from "./FocusPicker";
 import styles from "./MyDayView.module.css";
 
@@ -76,6 +77,43 @@ const FOCUS_LIMIT = 3;
 /** The check-in route caps a bulk request at 20 rows. */
 const CHECKIN_BATCH = 20;
 
+/** How far a row slides to reveal the delete target. */
+const REVEAL_PX = 88;
+
+/**
+ * POST check-ins in the batches the route accepts.
+ *
+ * BulkCheckinSchema is `.min(1).max(20)`, so one request carrying every habit
+ * is a 400 as soon as someone has 21 — and the user only sees an unexplained
+ * "Save failed". Returns what did not make it, plus the first error, so each
+ * caller can decide how loud to be about a partial save.
+ */
+async function postCheckins(checkins: CheckinDraft[]): Promise<{
+  saved: number;
+  failed: CheckinDraft[];
+  error: unknown;
+}> {
+  let saved = 0;
+  let firstError: unknown = null;
+  const failed: CheckinDraft[] = [];
+
+  for (let i = 0; i < checkins.length; i += CHECKIN_BATCH) {
+    const chunk = checkins.slice(i, i + CHECKIN_BATCH);
+    try {
+      await apiFetch("/api/checkins", {
+        method: "POST",
+        body: JSON.stringify({ checkins: chunk }),
+      });
+      saved += chunk.length;
+    } catch (err) {
+      failed.push(...chunk);
+      firstError = firstError ?? err;
+    }
+  }
+
+  return { saved, failed, error: firstError };
+}
+
 function CheckMark() {
   return (
     <svg viewBox="0 0 16 16" fill="none">
@@ -105,12 +143,19 @@ export function MyDayView() {
   );
   const [showCelebration, setShowCelebration] = useState(false);
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
+  const [editingTask, setEditingTask] = useState<TodoRow | null>(null);
   const [focusOpen, setFocusOpen] = useState(false);
+  /** The row currently swiped open, and the one asking to be deleted. */
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const swipeRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const swipeStartX = useRef(0);
   const swipeCurrentX = useRef(0);
   const swipeActiveId = useRef<string | null>(null);
+  /** Mirrors openId so the close helper can stay stable across renders. */
+  const openRowId = useRef<string | null>(null);
   const flushing = useRef(false);
 
   // The local day, never the UTC one: `toISOString().slice(0, 10)` puts an
@@ -145,6 +190,27 @@ export function MyDayView() {
           return h;
         });
         mutate(checkinsKey, merged, false);
+
+        // This screen reads the same fact from two endpoints — completion from
+        // /api/checkins (above) and the Focus chips' streak badge plus the
+        // progress bar from /api/day. Patching only the first left them
+        // disagreeing about the same habit until something else refetched, so
+        // mirror the pending toggles onto the day cache too. Only `completed`
+        // moves: a queued toggle cannot know the post-flush streak.
+        mutate(
+          dayKey,
+          (current: DayResponse | undefined) => {
+            if (!current) return current;
+            return {
+              ...current,
+              habits: current.habits.map((h) => {
+                const p = pending.find((p) => p.habit_id === h.id);
+                return p ? { ...h, completed: p.completed } : h;
+              }),
+            };
+          },
+          false
+        );
       }
     },
   });
@@ -185,6 +251,61 @@ export function MyDayView() {
     [day]
   );
 
+  /* ── Swipe-to-delete bookkeeping ──
+     .habit-row transitions transform over 200ms, which makes the row trail the
+     finger; the drag turns the transition off for its duration. */
+  const setRowOffset = useCallback((id: string, offset: number) => {
+    const el = swipeRefs.current.get(id);
+    if (el) el.style.transform = `translateX(${offset}px)`;
+  }, []);
+
+  /**
+   * Reset the row that was left slid open and forget it.
+   *
+   * The offset lives on the DOM node, not in React, so state alone would leave
+   * the visual behind: both have to be cleared. Kept stable on purpose — a
+   * callback that changed identity with openId would close the row the moment
+   * it opened.
+   */
+  const closeOpenRow = useCallback(() => {
+    const id = openRowId.current;
+    if (id) setRowOffset(id, 0);
+    openRowId.current = null;
+    setOpenId(null);
+  }, [setRowOffset]);
+
+  const openRow = useCallback(
+    (id: string) => {
+      // One row at a time: several open rows leave several live delete targets
+      // behind the list.
+      if (openRowId.current && openRowId.current !== id) closeOpenRow();
+      openRowId.current = id;
+      setOpenId(id);
+    },
+    [closeOpenRow]
+  );
+
+  /**
+   * The row allowed to look open, which is not quite the same as the row that
+   * was opened.
+   *
+   * The list changes under an open row all the time — a delete from the edit
+   * sheet, an optimistic removal, a revalidation — and a row that is no longer
+   * in the list cannot be revealed. Derived rather than reset from an effect,
+   * because a stale transform can never land on the wrong habit: React keeps
+   * each row's DOM node keyed by habit id, so a surviving row carries its own
+   * offset and a removed one takes its offset with it.
+   */
+  const revealedId =
+    openId && safeHabits.some((h) => h.id === openId) ? openId : null;
+
+  /** Revalidate every filtered todo list, not just one exact key. */
+  const refreshTodoLists = useCallback(
+    () =>
+      mutate((key) => typeof key === "string" && key.startsWith("/api/todos")),
+    [mutate]
+  );
+
   /**
    * Push drafts that were written while offline.
    *
@@ -221,19 +342,10 @@ export function MyDayView() {
       const unsent: CheckinDraft[] = [];
 
       for (const group of byDate.values()) {
-        for (let i = 0; i < group.length; i += CHECKIN_BATCH) {
-          const chunk = group.slice(i, i + CHECKIN_BATCH);
-          try {
-            await apiFetch("/api/checkins", {
-              method: "POST",
-              body: JSON.stringify({ checkins: chunk }),
-            });
-            saved += chunk.length;
-          } catch (err) {
-            unsent.push(...chunk);
-            firstError = firstError ?? err;
-          }
-        }
+        const result = await postCheckins(group);
+        saved += result.saved;
+        unsent.push(...result.failed);
+        firstError = firstError ?? result.error;
       }
 
       // Anything that failed stays in the store: the draft is the only copy.
@@ -350,9 +462,37 @@ export function MyDayView() {
     }
   }, [allCompleted, habits]);
 
+  /** The red target only asks the question; the confirm block deletes. */
+  const requestDelete = useCallback(
+    (habitId: string) => {
+      haptics.medium();
+      closeOpenRow();
+      setConfirmDeleteId(habitId);
+    },
+    [closeOpenRow]
+  );
+
+  /**
+   * Deleting from the swipe is a confirmation, not an optimistic delete with
+   * an undo.
+   *
+   * Undo is the softer gesture, but there is nothing that could put the habit
+   * back: DELETE /api/habits/:id archives the row (archived_at) and no route
+   * clears that column — HabitPatchSchema only carries name, icon and
+   * sort_order, so a "restore" could only re-create a brand new habit, without
+   * its check-in history and without its focus pin. That is a worse lie than
+   * asking first, so the swipe is two steps (slide, then confirm) and the
+   * delete reports itself with a toast. Confirming is also the shape of the
+   * delete in EditHabitSheet, so the swipe and the sheet agree.
+   */
   const deleteHabit = useCallback(
     async (habitId: string) => {
       haptics.medium();
+      // The row can leave the list before the request settles, so the confirm
+      // block is retired first and the button is held down by deletingId.
+      setDeletingId(habitId);
+      setConfirmDeleteId(null);
+      closeOpenRow();
       const optimistic = safeHabits.filter((h) => h.id !== habitId);
       await mutate(checkinsKey, optimistic, false);
       try {
@@ -360,13 +500,17 @@ export function MyDayView() {
         await mutate(checkinsKey);
         await mutate(dayKey);
         await mutate("/api/checkins/stats");
+        haptics.success();
+        toast(t("deleted"), { kind: "success" });
       } catch (err) {
         haptics.error();
         toast(errorMessage(err, t), { kind: "error" });
         await mutate(checkinsKey);
+      } finally {
+        setDeletingId(null);
       }
     },
-    [checkinsKey, dayKey, mutate, safeHabits, t, toast]
+    [checkinsKey, closeOpenRow, dayKey, mutate, safeHabits, t, toast]
   );
 
   const saveAll = async () => {
@@ -379,10 +523,19 @@ export function MyDayView() {
         mood: mood ?? undefined,
       }));
 
-      await apiFetch("/api/checkins", {
-        method: "POST",
-        body: JSON.stringify({ checkins }),
-      });
+      // Chunked rather than one request: the route rejects more than 20 rows
+      // in a single body, so a user with 21 habits got a bare "Save failed"
+      // and nothing was written.
+      const { failed, error: firstError } = await postCheckins(checkins);
+
+      if (failed.length > 0) {
+        haptics.error();
+        // Whatever did land is real, so the day is refetched instead of being
+        // left showing the pre-save state.
+        await mutate(dayKey);
+        toast(errorMessage(firstError, t), { kind: "error" });
+        return;
+      }
 
       haptics.success();
       await clearPendingCheckins();
@@ -408,9 +561,12 @@ export function MyDayView() {
         }),
       });
       await mutate(dayKey);
-      await mutate("/api/todos");
+      // The tasks tab, the Today list and every filter all read /api/todos —
+      // under different query strings. A string key only matches itself, so
+      // the deleted "/api/todos" invalidated nothing.
+      await refreshTodoLists();
     },
-    [dayKey, mutate]
+    [dayKey, mutate, refreshTodoLists]
   );
 
   const completeTask = useCallback(
@@ -472,7 +628,7 @@ export function MyDayView() {
           }),
         });
         await mutate(dayKey);
-        await mutate("/api/todos");
+        await refreshTodoLists();
         haptics.success();
         toast(t("rolledOver"), { kind: "success" });
       } catch (err) {
@@ -480,7 +636,7 @@ export function MyDayView() {
         toast(errorMessage(err, t), { kind: "error" });
       }
     },
-    [dayKey, mutate, t, today, toast]
+    [dayKey, mutate, refreshTodoLists, t, today, toast]
   );
 
   const toggleFocus = useCallback(
@@ -515,17 +671,28 @@ export function MyDayView() {
   );
 
   /**
-   * Tapping a task toggles it. The real task sheet (EditTaskSheet) is owned by
-   * another agent and its props are still moving, so this view does not depend
-   * on it yet — the toggle is the useful half of "tap to open".
+   * Tapping the row opens the task sheet; the checkbox is the only thing that
+   * completes. The row used to be a second, silent "complete" button — which
+   * made the list feel like it was deleting things — and there was no route at
+   * all from this screen into editing or rescheduling a task.
    */
   const openTask = useCallback(
-    async (task: TodoRow) => {
-      // TODO: open the task sheet
-      await completeTask(task);
+    (task: TodoRow) => {
+      closeOpenRow();
+      setEditingTask(task);
     },
-    [completeTask]
+    [closeOpenRow]
   );
+
+  /**
+   * The sheet refreshes the /api/todos family itself, but this screen reads
+   * /api/day: without this the edited title stays stale here, a task moved off
+   * today keeps its row, and one moved onto today never appears.
+   */
+  const closeTaskSheet = useCallback(() => {
+    setEditingTask(null);
+    void mutate(dayKey);
+  }, [dayKey, mutate]);
 
   const moodOptions: { value: Mood; labelKey: string; emoji: string }[] = [
     { value: 1, labelKey: "moodHappy", emoji: "😊" },
@@ -552,6 +719,7 @@ export function MyDayView() {
         <button
           className={styles.taskMain}
           onClick={() => openTask(task)}
+          aria-label={`${t("editTask")}: ${task.title}`}
           style={{ minHeight: 44 }}
         >
           {priorityKey ? (
@@ -736,75 +904,131 @@ export function MyDayView() {
               <>
                 <ul className="habit-list">
                   {safeHabits.map((habit) => (
-                    <li key={habit.id} className="swipe-wrapper">
-                      <div
-                        className="swipe-delete-bg"
-                        onClick={() => deleteHabit(habit.id)}
-                      >
-                        {t("delete")}
-                      </div>
-                      <div
-                        className="habit-row"
-                        ref={(el) => {
-                          if (el) swipeRefs.current.set(habit.id, el);
-                        }}
-                        onTouchStart={(e) => {
-                          swipeStartX.current = e.touches[0].clientX;
-                          swipeActiveId.current = habit.id;
-                        }}
-                        onTouchMove={(e) => {
-                          if (swipeActiveId.current !== habit.id) return;
-                          let diff = e.touches[0].clientX - swipeStartX.current;
-                          if (diff > 0) diff = 0;
-                          if (diff < -100) diff = -100;
-                          swipeCurrentX.current = diff;
-                          const el = swipeRefs.current.get(habit.id);
-                          if (el) el.style.transform = `translateX(${diff}px)`;
-                        }}
-                        onTouchEnd={() => {
-                          if (swipeActiveId.current !== habit.id) return;
-                          swipeActiveId.current = null;
-                          const el = swipeRefs.current.get(habit.id);
-                          if (swipeCurrentX.current < -50) {
-                            if (el) el.style.transform = "translateX(-80px)";
-                          } else {
-                            if (el) el.style.transform = "translateX(0)";
-                            swipeCurrentX.current = 0;
-                          }
-                        }}
-                      >
-                        <button
-                          className="habit-info-btn"
-                          onClick={() => setEditingHabit(habit)}
-                          aria-label={`${t("editHabit")}: ${habit.name}`}
-                          style={{ minHeight: 44 }}
-                        >
-                          <span className="habit-icon">{habit.icon}</span>
-                          <span
-                            className={`habit-name${
-                              isCompleted(habit.id) ? " completed" : ""
-                            }`}
+                    <li key={habit.id}>
+                      {/* The visible delete target sits under the row inside
+                          this module's own wrapper: the global
+                          .swipe-delete-bg is locked at opacity:0, so the old
+                          swipe revealed blank space and tapping it archived
+                          the habit with no warning at all. */}
+                      <div className={styles.swipeItem}>
+                        <div className={styles.swipeDeleteBg}>
+                          <button
+                            type="button"
+                            className={styles.swipeDeleteBtn}
+                            tabIndex={revealedId === habit.id ? 0 : -1}
+                            aria-hidden={revealedId !== habit.id}
+                            onClick={() => requestDelete(habit.id)}
+                            style={{ minHeight: 44 }}
                           >
-                            {habit.name}
-                          </span>
-                        </button>
-                        <button
-                          role="checkbox"
-                          aria-checked={isCompleted(habit.id)}
-                          aria-label={`${habit.name}: ${
-                            isCompleted(habit.id)
-                              ? t("habitCompletedLabel")
-                              : t("habitNotCompletedLabel")
-                          }`}
-                          className={`habit-checkbox${
-                            isCompleted(habit.id) ? " checked" : ""
-                          }`}
-                          onClick={() => toggleHabit(habit.id)}
-                          style={{ minHeight: 44, minWidth: 44 }}
+                            🗑 {t("delete")}
+                          </button>
+                        </div>
+                        <div
+                          className={`habit-row ${styles.swipeRow}`}
+                          ref={(el) => {
+                            if (el) swipeRefs.current.set(habit.id, el);
+                          }}
+                          onTouchStart={(e) => {
+                            if (openRowId.current && openRowId.current !== habit.id)
+                              closeOpenRow();
+                            swipeStartX.current = e.touches[0].clientX;
+                            swipeCurrentX.current = 0;
+                            swipeActiveId.current = habit.id;
+                            // .habit-row transitions transform over 200ms, which
+                            // makes the row lag behind the finger; dragging
+                            // turns it off.
+                            swipeRefs.current
+                              .get(habit.id)
+                              ?.classList.add(styles.swipeDragging);
+                          }}
+                          onTouchMove={(e) => {
+                            if (swipeActiveId.current !== habit.id) return;
+                            const base = revealedId === habit.id ? -REVEAL_PX : 0;
+                            let diff =
+                              e.touches[0].clientX - swipeStartX.current + base;
+                            if (diff > 0) diff = 0;
+                            if (diff < -REVEAL_PX) diff = -REVEAL_PX;
+                            swipeCurrentX.current = diff;
+                            setRowOffset(habit.id, diff);
+                          }}
+                          onTouchEnd={() => {
+                            if (swipeActiveId.current !== habit.id) return;
+                            swipeActiveId.current = null;
+                            swipeRefs.current
+                              .get(habit.id)
+                              ?.classList.remove(styles.swipeDragging);
+                            const shouldOpen =
+                              swipeCurrentX.current < -REVEAL_PX / 2;
+                            setRowOffset(habit.id, shouldOpen ? -REVEAL_PX : 0);
+                            if (shouldOpen) openRow(habit.id);
+                            else closeOpenRow();
+                          }}
                         >
-                          {isCompleted(habit.id) && <CheckMark />}
-                        </button>
+                          <button
+                            className="habit-info-btn"
+                            onClick={() => {
+                              closeOpenRow();
+                              setEditingHabit(habit);
+                            }}
+                            aria-label={`${t("editHabit")}: ${habit.name}`}
+                            style={{ minHeight: 44 }}
+                          >
+                            <span className="habit-icon">{habit.icon}</span>
+                            <span
+                              className={`habit-name${
+                                isCompleted(habit.id) ? " completed" : ""
+                              }`}
+                            >
+                              {habit.name}
+                            </span>
+                          </button>
+                          <button
+                            role="checkbox"
+                            aria-checked={isCompleted(habit.id)}
+                            aria-label={`${habit.name}: ${
+                              isCompleted(habit.id)
+                                ? t("habitCompletedLabel")
+                                : t("habitNotCompletedLabel")
+                            }`}
+                            className={`habit-checkbox${
+                              isCompleted(habit.id) ? " checked" : ""
+                            }`}
+                            onClick={() => toggleHabit(habit.id)}
+                            style={{ minHeight: 44, minWidth: 44 }}
+                          >
+                            {isCompleted(habit.id) && <CheckMark />}
+                          </button>
+                        </div>
                       </div>
+
+                      {/* Outside the swipe wrapper on purpose: the wrapper is
+                          overflow:hidden and the delete target is absolutely
+                          positioned over all of it, so a confirm block inside
+                          would be painted under the red. */}
+                      {confirmDeleteId === habit.id ? (
+                        <div className="delete-confirm">
+                          <p className="delete-confirm-text">
+                            {t("deleteHabitConfirm")}
+                          </p>
+                          <div className="sheet-actions">
+                            <button
+                              className="sheet-cancel-btn"
+                              onClick={() => setConfirmDeleteId(null)}
+                              style={{ minHeight: 44 }}
+                            >
+                              {t("cancel")}
+                            </button>
+                            <button
+                              className="sheet-delete-confirm-btn"
+                              onClick={() => void deleteHabit(habit.id)}
+                              disabled={deletingId === habit.id}
+                              style={{ minHeight: 44 }}
+                            >
+                              {deletingId === habit.id ? t("saving") : t("delete")}
+                            </button>
+                          </div>
+                        </div>
+                      ) : null}
                     </li>
                   ))}
                 </ul>
@@ -851,6 +1075,14 @@ export function MyDayView() {
         key={editingHabit?.id ?? "empty"}
         habit={editingHabit}
         onClose={() => setEditingHabit(null)}
+      />
+
+      {/* Keyed by id so the sheet remounts with the tapped task's own fields
+          instead of keeping the previous one's state. */}
+      <EditTaskSheet
+        key={editingTask?.id ?? "empty"}
+        task={editingTask}
+        onClose={closeTaskSheet}
       />
 
       <FocusPicker
