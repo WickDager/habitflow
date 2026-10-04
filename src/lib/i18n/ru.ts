@@ -43,9 +43,9 @@ export const ru: Record<keyof typeof en, string> = {
 
   // Bot messages
   botWelcome:
-    "Добро пожаловать в HabitFlow — ваш ежедневный помощник.\n\nМаленькие привычки приводят к большим результатам. Отслеживайте важное за секунды, сохраняйте темп и растите свои серии.\n\nНажмите кнопку ниже, чтобы начать! 🚀",
+    "👋 <b>Добро пожаловать в HabitFlow</b>\n\nМаленькие привычки приводят к большим результатам. Отслеживайте важное за секунды, сохраняйте темп и растите свои серии.\n\n<b>Что я умею</b>\n• Присылать план каждое утро\n• Напоминать, если день выбился из ритма\n• Подводить итоги вечером\n\nНажмите кнопку ниже, чтобы начать 🚀",
   botOpenApp: "Открыть HabitFlow",
-  botReminderSettings: "Настройки напоминаний:",
+  botReminderSettings: "⚙️ Настройки напоминаний",
   botEnableReminders: "Включить напоминания",
   botDisableReminders: "Отключить напоминания",
 
@@ -233,25 +233,35 @@ export const ru: Record<keyof typeof en, string> = {
 
   // ── Сообщения бота ──
   botHelp:
-    "Команды:\n/add <задача> — добавить задачу\n/today — план на сегодня\n/stats — прогресс\n/settings — напоминания",
-  botTodayTitle: "Сегодня, {{date}}",
-  botNothingToday: "На сегодня ничего не запланировано. Отдыхайте.",
+    "🤖 <b>Бот HabitFlow</b>\n\n<code>/add</code> — добавить задачу\n<code>/today</code> — план на сегодня\n<code>/stats</code> — прогресс\n<code>/settings</code> — напоминания\n\nПерешлите мне любое сообщение — сохраню его как задачу.",
+  botTodayTitle: "📅 Сегодня, {{date}}",
+  botNothingToday: "🎉 На сегодня ничего не запланировано. Отдыхайте.",
   botDone: "Готово",
   botLater: "Позже",
   botSnoozed: "Отложено на час",
   botSkipped: "Пропущено на сегодня",
-  botAdded: "Добавлено: {{title}}",
-  botAddUsage: "Отправьте /add и текст задачи.\nНапример: /add оплатить аренду завтра в 9:00",
-  botTaskDue: "⏰ Пора: {{title}}",
+  botAdded: "✅ Добавлено в задачи",
+  botAddedWhen: "📅 {{when}}",
+  botAddUsage:
+    "Добавьте задачу после команды:\n\n<code>/add оплатить аренду завтра в 9:00</code>",
+  botTaskDue: "⏰ Пора\n\n{{title}}",
   botMoodLogged: "Настроение отмечено — спасибо!",
   botMoodQuestion: "Как прошёл день?",
-  botForwardedSaved: "Сохранено как задача.",
-  botMorningTitle: "Доброе утро, {{name}}",
-  botMorningBody: "Сегодня: привычек — {{habits}} · задач — {{tasks}}",
-  botEveningTitle: "Как прошёл день?",
-  botEveningBody: "Сегодня выполнено {{done}} из {{total}} привычек.",
-  botNothingLoggedYet: "Сегодня ещё ничего не отмечено — осталось {{count}}.",
-  botStreakLine: "Лучшая серия: {{count}} дней",
+  botForwardedSaved: "✅ Сохранено как задача.",
+  botMorningTitle: "☀️ Доброе утро, {{name}}",
+  botEveningTitle: "🌙 Итоги дня",
+  botEveningBody: "Сегодня выполнено {{done}} из {{total}} привычек",
+  botHabitsLeft: "ПРИВЫЧКИ · осталось: {{count}}",
+  botTasksDue: "ЗАДАЧИ · на сегодня: {{count}}",
+  botMoreItems: "и ещё {{count}}",
+  botTapToCheck: "Отметьте привычку кнопкой ниже",
+  botNothingLoggedYet: "👋 Сегодня ещё ничего не отмечено",
+  botStatsTitle: "📊 Ваш прогресс",
+  botTotalCheckinsLine: "✅ Всего отметок: {{count}}",
+  botStatusOn: "Статус: ✅ Включены",
+  botStatusOff: "Статус: ⬜ Выключены",
+  botDailyLimit: "Лимит в день · {{count}} сообщений",
+  botStreakLine: "🔥 Лучшая серия · {{count}} дней",
   botMuteHint: "Отключить можно командой /settings",
 
   // ── Пустые состояния ──

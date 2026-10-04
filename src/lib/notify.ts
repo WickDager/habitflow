@@ -100,6 +100,9 @@ export function openAppKeyboard(t: TranslateLike) {
   };
 }
 
+/** A hairline between a message's content and its closing line. */
+export const MESSAGE_DIVIDER = "━━━━━━━━━━━━";
+
 /**
  * One-tap completion buttons for the habits still outstanding today.
  *
@@ -108,21 +111,31 @@ export function openAppKeyboard(t: TranslateLike) {
  * Labels are plain text — inline keyboard buttons are not HTML-parsed, so the
  * habit name needs no escaping here (unlike message bodies).
  */
-function habitDoneRows(day: DayData) {
-  return day.habitsTodoList.slice(0, 5).map((habit) => [
+function habitDoneRows(habits: OutstandingHabit[], localDate: string) {
+  return habits.slice(0, 5).map((habit) => [
     {
       text: `✅ ${habit.icon} ${habit.name}`.replace(/\s+/g, " ").trim(),
-      callback_data: `done:${habit.id}:${day.localDate}`,
+      callback_data: `done:${habit.id}:${localDate}`,
     },
   ]);
 }
 
-/** Habit buttons (if any) followed by the open-the-app button. */
-function planKeyboard(day: DayData, tr: NotifyT): { inline_keyboard: unknown[][] } {
+/**
+ * Habit buttons (if any) followed by the open-the-app button.
+ *
+ * Takes a bare habit list rather than a `DayData` so the bot's `/today` reply —
+ * which loads its own, deliberately narrower task set — can carry the same
+ * keyboard as the scheduled digests.
+ */
+export function planKeyboard(
+  habits: OutstandingHabit[],
+  localDate: string,
+  t: TranslateLike
+): { inline_keyboard: unknown[][] } {
   return {
     inline_keyboard: [
-      ...habitDoneRows(day),
-      [{ text: tr("botOpenApp"), web_app: { url: appUrl() } }],
+      ...habitDoneRows(habits, localDate),
+      [{ text: asT(t)("botOpenApp"), web_app: { url: appUrl() } }],
     ],
   };
 }
@@ -286,6 +299,88 @@ export async function loadWeekData(userId: string, localDate: string): Promise<W
   };
 }
 
+// ── The shared day block ─────────────────────────────────────────────────────
+
+/** Rows a section lists before it collapses into a "+N more" line. */
+const HABIT_ROWS_MAX = 10;
+const TASK_ROWS_MAX = 7;
+
+/**
+ * "• Pay rent · Due today 09:00" — the badge and the time only when they exist.
+ *
+ * An undated task is today's task in this UI (see loadOpenTodos), so it gets no
+ * badge rather than a misleading one.
+ */
+function taskLine(todo: OpenTodo, localDate: string, tr: NotifyT): string {
+  const badge = !todo.due_date
+    ? ""
+    : todo.due_date < localDate
+      ? tr("overdue")
+      : tr("dueToday");
+  // Postgres hands back "HH:MM:SS"; the seconds are noise in a message.
+  const time = todo.due_time ? todo.due_time.slice(0, 5) : "";
+  const suffix = [badge, time].filter(Boolean).join(" ");
+  return `• ${escapeHtml(todo.title)}${suffix ? ` · ${escapeHtml(suffix)}` : ""}`;
+}
+
+/**
+ * The HABITS / TASKS block shared by every digest — the morning plan, the
+ * midday nudge, the evening review and the bot's /today reply. One builder, so
+ * the four can never count or format the same day differently.
+ *
+ * Names are escaped here: the block is interpolated into HTML-parsed messages,
+ * and a habit called "Read <b>" would otherwise swallow the rest of the text.
+ */
+export function daySections(input: {
+  habits: OutstandingHabit[];
+  tasks: OpenTodo[];
+  /** The user's local date — what makes "overdue" mean overdue. */
+  localDate: string;
+  t: TranslateLike;
+}): string {
+  const tr = asT(input.t);
+  const blocks: string[] = [];
+
+  if (input.habits.length > 0) {
+    const lines = [tr("botHabitsLeft", { count: input.habits.length })];
+    for (const habit of input.habits.slice(0, HABIT_ROWS_MAX)) {
+      const icon = habit.icon ? `${escapeHtml(habit.icon)} ` : "";
+      lines.push(`○ ${icon}${escapeHtml(habit.name)}`);
+    }
+    if (input.habits.length > HABIT_ROWS_MAX) {
+      lines.push(
+        tr("botMoreItems", { count: input.habits.length - HABIT_ROWS_MAX })
+      );
+    }
+    blocks.push(lines.join("\n"));
+  }
+
+  if (input.tasks.length > 0) {
+    const lines = [tr("botTasksDue", { count: input.tasks.length })];
+    for (const todo of input.tasks.slice(0, TASK_ROWS_MAX)) {
+      lines.push(taskLine(todo, input.localDate, tr));
+    }
+    if (input.tasks.length > TASK_ROWS_MAX) {
+      lines.push(
+        tr("botMoreItems", { count: input.tasks.length - TASK_ROWS_MAX })
+      );
+    }
+    blocks.push(lines.join("\n"));
+  }
+
+  return blocks.join("\n\n");
+}
+
+/**
+ * The closing line of a digest: pointing at the buttons when there are habits
+ * to tap, and at /settings when there are not — on a day with nothing
+ * outstanding the app button is the only control left, and the habit hint
+ * would be pointing at nothing.
+ */
+function footerFor(day: DayData, tr: NotifyT): string {
+  return day.habitsTodoList.length > 0 ? tr("botTapToCheck") : tr("botMuteHint");
+}
+
 // ── Composers ────────────────────────────────────────────────────────────────
 // Each returns null when there is genuinely nothing to say. The engine treats
 // null as "skip this kind entirely", so no empty "you have nothing to do"
@@ -296,26 +391,53 @@ export function composeMorning(user: UserRow, day: DayData, t: TranslateLike): M
   // No habits and nothing on the task list — there is no plan to report.
   if (day.habitsTotal === 0 && day.tasksTodo === 0) return null;
 
+  const body = daySections({
+    habits: day.habitsTodoList,
+    tasks: day.openTodos,
+    localDate: day.localDate,
+    t,
+  });
+  // Unreachable while the guard above holds, but it keeps the composer total:
+  // an empty block is nothing to say, and the engine reads null that way.
+  if (!body) return null;
+
   const text = [
     tr("botMorningTitle", { name: escapeHtml(user.first_name) }),
-    tr("botMorningBody", { habits: day.habitsTodo, tasks: day.tasksTodo }),
     "",
-    tr("botMuteHint"),
+    body,
+    "",
+    MESSAGE_DIVIDER,
+    footerFor(day, tr),
   ].join("\n");
 
-  return { text, replyMarkup: planKeyboard(day, tr) };
+  return {
+    text,
+    replyMarkup: planKeyboard(day.habitsTodoList, day.localDate, t),
+  };
 }
 
 export function composeEvening(user: UserRow, day: DayData, t: TranslateLike): Message | null {
   const tr = asT(t);
   if (day.habitsTotal === 0) return null;
 
-  const text = [
-    tr("botEveningTitle"),
+  const blocks = [
     tr("botEveningBody", { done: day.habitsDone, total: day.habitsTotal }),
-    "",
-    tr("botMoodQuestion"),
-  ].join("\n");
+  ];
+
+  // What is still open, so the review reads as a to-do rather than a verdict.
+  // Tasks are left out on purpose: they carry their own due-time reminders, and
+  // repeating them here is what makes an evening message feel like nagging.
+  const left = daySections({
+    habits: day.habitsTodoList,
+    tasks: [],
+    localDate: day.localDate,
+    t,
+  });
+  if (left) blocks.push("", left);
+
+  blocks.push("", MESSAGE_DIVIDER, tr("botMoodQuestion"));
+
+  const text = [tr("botEveningTitle"), "", ...blocks].join("\n");
 
   // Emoji pairing mirrors TodayView's mood picker (1 happy, 2 neutral, 3 sad).
   // The local date rides on each button so the webhook files the mood under the
@@ -339,11 +461,29 @@ export function composeNudge(user: UserRow, day: DayData, t: TranslateLike): Mes
   // Only ever for someone with habits who has logged nothing today.
   if (day.habitsTotal === 0 || day.habitsDone > 0) return null;
 
-  const text = [tr("botNothingLoggedYet", { count: day.habitsTodo }), "", tr("botMuteHint")].join(
-    "\n"
-  );
+  // Habits only: the nudge exists to get the first box ticked, and the morning
+  // message already carries the day's tasks.
+  const body = daySections({
+    habits: day.habitsTodoList,
+    tasks: [],
+    localDate: day.localDate,
+    t,
+  });
+  if (!body) return null;
 
-  return { text, replyMarkup: planKeyboard(day, tr) };
+  const text = [
+    tr("botNothingLoggedYet"),
+    "",
+    body,
+    "",
+    MESSAGE_DIVIDER,
+    tr("botTapToCheck"),
+  ].join("\n");
+
+  return {
+    text,
+    replyMarkup: planKeyboard(day.habitsTodoList, day.localDate, t),
+  };
 }
 
 export function composeTask(user: UserRow, todo: OpenTodo, t: TranslateLike): Message {

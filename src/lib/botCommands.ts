@@ -4,10 +4,16 @@ import { serverClient } from "@/lib/supabase";
 import { answerCallbackQuery, editMessageText, sendMessage } from "@/lib/telegram";
 import { en } from "@/lib/i18n/en";
 import { ru } from "@/lib/i18n/ru";
-import { parseTaskInput } from "@/lib/nlpDate";
-import { dateInTimezone, parseDateString, toTimeString } from "@/lib/dates";
+import { parseTaskInput, type ParsedInput } from "@/lib/nlpDate";
+import {
+  addDays,
+  dateInTimezone,
+  parseDateString,
+  toTimeString,
+} from "@/lib/dates";
 import { normalizeTagName } from "@/lib/schemas";
 import { reminderKinds } from "@/lib/reminders";
+import { MESSAGE_DIVIDER, daySections, planKeyboard } from "@/lib/notify";
 
 /**
  * Bot command and callback handling, kept out of the webhook route so the
@@ -122,10 +128,11 @@ type BotUser = Pick<
   | "reminder_kinds"
   | "quiet_hours_start"
   | "quiet_hours_end"
+  | "max_daily_messages"
 >;
 
 const USER_COLUMNS =
-  "id, telegram_id, first_name, timezone, reminder_enabled, reminder_kinds, quiet_hours_start, quiet_hours_end";
+  "id, telegram_id, first_name, timezone, reminder_enabled, reminder_kinds, quiet_hours_start, quiet_hours_end, max_daily_messages";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -292,10 +299,18 @@ function settingsText(t: BotTranslations, user: BotUser): string {
   // `isQuietHour` treats start === end as "no quiet hours", so an equal pair is
   // the disabled state and a "22:00–22:00" range would read as a real window.
   const window = user.quiet_hours_start === user.quiet_hours_end ? "—" : `${start}–${end}`;
+  // Same fallback as the settings API and underDailyCap; the column is NOT NULL
+  // so this is unreachable, but a third value here is how a "why did I get 6
+  // messages" bug starts.
+  const cap = user.max_daily_messages ?? 3;
   return [
     t.botReminderSettings,
     "",
+    user.reminder_enabled ? t.botStatusOn : t.botStatusOff,
     `${t.quietHoursLabel}: ${window}`,
+    fill(t.botDailyLimit, { count: cap }),
+    "",
+    MESSAGE_DIVIDER,
     t.quietHoursHint,
   ].join("\n");
 }
@@ -416,7 +431,51 @@ async function cmdAdd(
 
   await linkTags(db, user.id, todo.id, parsed.tags ?? []);
 
-  await sendMessage(chatId, fill(t.botAdded, { title: esc(title) }));
+  await sendMessage(
+    chatId,
+    addReceipt(t, title, parsed, dateInTimezone(user.timezone || "UTC"), msg.from?.language_code)
+  );
+}
+
+/**
+ * "Today", "Tomorrow", "Fri, 3 Oct" — whichever of the two the parser found.
+ * A bare "9am" with no date is a real parse result, so the time can stand alone.
+ */
+function dueLabel(
+  t: BotTranslations,
+  parsed: Pick<ParsedInput, "dueDate" | "dueTime">,
+  localDate: string,
+  langCode: string | undefined
+): string {
+  const { dueDate } = parsed;
+  const day = !dueDate
+    ? ""
+    : dueDate === localDate
+      ? t.dateToday
+      : dueDate === addDays(localDate, 1)
+        ? t.dateTomorrow
+        : dueDate === addDays(localDate, -1)
+          ? t.dateYesterday
+          : formatDate(dueDate, langCode);
+  return [day, parsed.dueTime].filter(Boolean).join(" · ");
+}
+
+/**
+ * The /add receipt. It echoes the parsed date and time, not just the title:
+ * "tomorrow" resolving against the wrong day is the one mistake a user cannot
+ * see in their own text, so the interpretation is shown back to them.
+ */
+function addReceipt(
+  t: BotTranslations,
+  title: string,
+  parsed: Pick<ParsedInput, "dueDate" | "dueTime">,
+  localDate: string,
+  langCode: string | undefined
+): string {
+  const lines = [t.botAdded, "", `<b>${esc(title)}</b>`];
+  const when = dueLabel(t, parsed, localDate, langCode);
+  if (when) lines.push(fill(t.botAddedWhen, { when }));
+  return lines.join("\n");
 }
 
 /**
@@ -493,7 +552,9 @@ async function cmdToday(db: Db, msg: TgMessage, user: BotUser): Promise<void> {
   const doneHabits = new Set(
     (checkins ?? []).filter((c) => c.completed).map((c) => c.habit_id)
   );
-  const pendingHabits = (habits ?? []).filter((h) => !doneHabits.has(h.id));
+  const pendingHabits = (habits ?? [])
+    .filter((h) => !doneHabits.has(h.id))
+    .map((h) => ({ id: h.id, name: h.name, icon: h.icon ?? "" }));
 
   // Due today or overdue, which is what makes a chat digest worth reading.
   // Deliberately narrower than /api/day's list, which also carries every open
@@ -512,24 +573,16 @@ async function cmdToday(db: Db, msg: TgMessage, user: BotUser): Promise<void> {
     .order("due_date", { ascending: true })
     .limit(20);
 
-  const lines: string[] = [];
-  if (pendingHabits.length > 0) {
-    lines.push(`<b>${esc(t.habitsSection)}</b>`);
-    for (const habit of pendingHabits) {
-      lines.push(`• ${esc(habit.icon)} ${esc(habit.name)}`);
-    }
-  }
-  if (tasks && tasks.length > 0) {
-    if (lines.length > 0) lines.push("");
-    lines.push(`<b>${esc(t.tasksSection)}</b>`);
-    for (const todo of tasks) {
-      const badge = todo.due_date === date ? t.dueToday : t.overdue;
-      const time = todo.due_time ? ` ${todo.due_time}` : "";
-      lines.push(`• ${esc(todo.title)} — ${esc(badge)}${time}`);
-    }
-  }
+  // The same block builder the scheduled digests use, so /today cannot count or
+  // format the day differently from the message that already described it.
+  const body = daySections({
+    habits: pendingHabits,
+    tasks: tasks ?? [],
+    localDate: date,
+    t,
+  });
 
-  if (lines.length === 0) {
+  if (!body) {
     await sendMessage(chatId, t.botNothingToday);
     return;
   }
@@ -537,7 +590,12 @@ async function cmdToday(db: Db, msg: TgMessage, user: BotUser): Promise<void> {
   const heading = fill(t.botTodayTitle, {
     date: formatDate(date, msg.from?.language_code),
   });
-  await sendMessage(chatId, `${heading}\n\n${lines.join("\n")}`);
+  // The one-tap buttons the digests carry. /today is the message a user opens
+  // when they are ready to work, so it should not be the one that makes them
+  // leave the chat to tick a box.
+  await sendMessage(chatId, `${heading}\n\n${body}`, {
+    replyMarkup: planKeyboard(pendingHabits, date, t),
+  });
 }
 
 async function cmdStats(db: Db, msg: TgMessage, user: BotUser): Promise<void> {
@@ -562,9 +620,12 @@ async function cmdStats(db: Db, msg: TgMessage, user: BotUser): Promise<void> {
 
   await sendMessage(
     msg.chat.id,
-    [fill(t.botStreakLine, { count: best }), `${total} ${t.totalCheckins}`].join(
-      "\n"
-    )
+    [
+      t.botStatsTitle,
+      "",
+      fill(t.botStreakLine, { count: best }),
+      fill(t.botTotalCheckinsLine, { count: total }),
+    ].join("\n")
   );
 }
 
@@ -620,7 +681,11 @@ function markLineDone(text: string, escapedName: string): string {
   if (index === -1) return `${text} ✅`;
   // Double taps are possible before the edit lands in the chat.
   if (lines[index].endsWith(" ✅")) return text;
-  lines[index] = `${lines[index]} ✅`;
+  // Digest rows are written as "○ Habit" and "• Task"; turning the bullet into
+  // the tick keeps the list aligned. A row in any other shape gets the mark
+  // appended rather than being left untouched.
+  const ticked = lines[index].replace(/^[○•]\s+/, "✅ ");
+  lines[index] = ticked === lines[index] ? `${lines[index]} ✅` : ticked;
   return lines.join("\n");
 }
 
