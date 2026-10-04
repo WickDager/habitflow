@@ -14,7 +14,12 @@ export const CheckinSchema = z.object({
 
 export const HabitSchema = z.object({
   name: z.string().min(1).max(50),
-  icon: z.string().emoji().max(2),
+  // max(8), not max(2). Zod counts UTF-16 units, so a single emoji that carries
+  // a variation selector (🏋️ U+1F3CB U+FE0F) is 3 units and was rejected — the
+  // client would have offered icons the server refused with a 400. 8 still
+  // bounds the field (a sentence is ~30 units) while allowing colour forms and
+  // short ZWJ sequences.
+  icon: z.string().emoji().max(8),
 });
 
 export const BulkCheckinSchema = z.object({

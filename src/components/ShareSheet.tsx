@@ -8,6 +8,7 @@ import { haptics } from "@/lib/haptics";
 import { useToast } from "@/components/Toast";
 import { useTelegram } from "@/components/TelegramProvider";
 import { useLanguage } from "@/lib/i18n";
+import { useEscapeToClose, useSheetDrag } from "./useSheetDrag";
 import styles from "./ShareSheet.module.css";
 
 /**
@@ -75,6 +76,10 @@ export function ShareSheet({ open, onClose, habitId = null }: ShareSheetProps) {
    * line is simply not rendered.
    */
   const { user } = useTelegram();
+
+  // The drag on the handle and Escape, alongside the ✕ button below.
+  const { sheetRef, dragStyle, handleProps } = useSheetDrag({ open, onClose });
+  useEscapeToClose(onClose, open);
 
   const [selected, setSelected] = useState<string | null>(null);
   const [telegramId, setTelegramId] = useState("");
@@ -204,8 +209,14 @@ export function ShareSheet({ open, onClose, habitId = null }: ShareSheetProps) {
       {/* Chrome from globals.css, not a local copy: the two sheets used to
           carry their own overlay/sheet rules and drifted from the shared ones. */}
       <div className="sheet-overlay" onClick={onClose} aria-hidden="true" />
-      <div className="bottom-sheet" role="dialog" aria-modal="true">
-        <div className="sheet-handle" />
+      <div
+        className="bottom-sheet"
+        ref={sheetRef}
+        style={dragStyle}
+        role="dialog"
+        aria-modal="true"
+      >
+        <div className="sheet-handle" {...handleProps} />
 
         <div className={styles.header}>
           <div>

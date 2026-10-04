@@ -65,6 +65,13 @@ interface TelegramWebApp {
   showPopup: (params: { title?: string; message: string; buttons?: string[] }) => void;
   showAlert: (message: string) => void;
   close: () => void;
+  /**
+   * Newer Bot API methods for matching the WebView chrome to the app. Optional
+   * because older clients do not implement them, and they are absent entirely
+   * on Telegram Web (where window.Telegram is not injected at all).
+   */
+  setHeaderColor?: (color: string) => void;
+  setBackgroundColor?: (color: string) => void;
 }
 
 interface Window {

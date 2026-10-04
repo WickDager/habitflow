@@ -18,27 +18,6 @@ type Tab = "today" | "tasks" | "stats";
 
 type Sheet = "create" | "settings" | "routines" | "share" | null;
 
-/**
- * Browser-only: reads the stored theme. Must not be called during render —
- * the server always renders the "dark" default, so a stored "light" would make
- * the client's first render disagree with the server's markup.
- */
-function getStoredTheme(): "light" | "dark" {
-  if (typeof window === "undefined") return "dark";
-  try {
-    const stored = localStorage.getItem("habitflow-theme");
-    if (stored === "light" || stored === "dark") return stored;
-  } catch {
-    /* storage unavailable — fall through to the default */
-  }
-  return "dark";
-}
-
-function applyTheme(theme: "light" | "dark") {
-  document.documentElement.classList.remove("light", "dark");
-  document.documentElement.classList.add(theme);
-}
-
 export default function Home() {
   const [tab, setTab] = useState<Tab>("today");
   /**
@@ -48,7 +27,6 @@ export default function Home() {
    * to cover the other triggers. This makes it impossible by construction.
    */
   const [sheet, setSheet] = useState<Sheet>(null);
-  const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
 
   const tabRefs = useRef<Record<Tab, HTMLButtonElement | null>>({ today: null, tasks: null, stats: null });
@@ -58,20 +36,7 @@ export default function Home() {
 
   const closeSheet = useCallback(() => setSheet(null), []);
 
-  useEffect(() => {
-    // localStorage is browser-only, so the stored preference is applied after
-    // mount (the inline script in layout.tsx already set the class pre-paint,
-    // so this only syncs React's state with it).
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setTheme(getStoredTheme());
-  }, []);
-
   const isDev = process.env.NODE_ENV === "development";
-
-  useEffect(() => {
-    applyTheme(theme);
-    localStorage.setItem("habitflow-theme", theme);
-  }, [theme]);
 
   /**
    * Position the active-tab underline.
@@ -93,10 +58,6 @@ export default function Home() {
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
   }, [tab, checked, lang]);
-
-  const toggleTheme = useCallback(() => {
-    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
-  }, []);
 
   if (!checked) {
     return null;
@@ -142,14 +103,6 @@ export default function Home() {
               style={{ minHeight: 36, minWidth: 36 }}
             >
               ⚙️
-            </button>
-            <button
-              className="nav-icon-btn"
-              onClick={toggleTheme}
-              aria-label={t("toggleTheme")}
-              style={{ minHeight: 36, minWidth: 36 }}
-            >
-              {theme === "dark" ? "☀️" : "🌙"}
             </button>
           </div>
         </div>

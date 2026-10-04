@@ -7,6 +7,9 @@ import { errorMessage } from "@/lib/errors";
 import { haptics } from "@/lib/haptics";
 import { useToast } from "@/components/Toast";
 import { useLanguage, type Lang } from "@/lib/i18n";
+import { useEscapeToClose, useSheetDrag } from "./useSheetDrag";
+import { EmojiPicker } from "./EmojiPicker";
+import { DEFAULT_HABIT_ICON } from "@/lib/habitIcons";
 import styles from "./RoutinesSheet.module.css";
 
 /**
@@ -46,7 +49,6 @@ interface RoutinesSheetProps {
 }
 
 /** Same palette CreateModal offers for habits. */
-const EMOJIS = ["🏃", "📚", "💧", "🧘", "💤", "🍎", "✍️", "🎯", "💻", "🧹"];
 
 /**
  * Narrow weekday names from Intl rather than a hardcoded table, so the picker
@@ -66,11 +68,15 @@ export function RoutinesSheet({ open, onClose }: RoutinesSheetProps) {
   const { t, lang } = useLanguage();
   const { mutate } = useSWRConfig();
   const { toast } = useToast();
+  // Drag on the handle, and Escape: the sheet is a long scrolling list, so a
+  // mouse user reaching for the handle is the most likely way out of it.
+  const { sheetRef, dragStyle, handleProps } = useSheetDrag({ open, onClose });
+  useEscapeToClose(onClose, open);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [name, setName] = useState("");
-  const [icon, setIcon] = useState(EMOJIS[0]);
+  const [icon, setIcon] = useState(DEFAULT_HABIT_ICON);
   const [days, setDays] = useState<number[]>([]);
   const [habitIds, setHabitIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
@@ -135,7 +141,7 @@ export function RoutinesSheet({ open, onClose }: RoutinesSheetProps) {
     setEditingId(null);
     setFormOpen(false);
     setName("");
-    setIcon(EMOJIS[0]);
+    setIcon(DEFAULT_HABIT_ICON);
     setDays([]);
     setHabitIds([]);
     setError("");
@@ -151,7 +157,7 @@ export function RoutinesSheet({ open, onClose }: RoutinesSheetProps) {
     haptics.select();
     setEditingId(routine.id);
     setName(routine.name);
-    setIcon(routine.icon ?? EMOJIS[0]);
+    setIcon(routine.icon ?? DEFAULT_HABIT_ICON);
     setDays(routine.days);
     setHabitIds(routine.items.map((item) => item.habit_id));
     setError("");
@@ -269,8 +275,14 @@ export function RoutinesSheet({ open, onClose }: RoutinesSheetProps) {
       {/* Chrome from globals.css, not a local copy: the two sheets used to
           carry their own overlay/sheet rules and drifted from the shared ones. */}
       <div className="sheet-overlay" onClick={onClose} aria-hidden="true" />
-      <div className="bottom-sheet" role="dialog" aria-modal="true">
-        <div className="sheet-handle" />
+      <div
+        className="bottom-sheet"
+        ref={sheetRef}
+        style={dragStyle}
+        role="dialog"
+        aria-modal="true"
+      >
+        <div className="sheet-handle" {...handleProps} />
 
         {formOpen ? (
           <div className={styles.form}>
@@ -290,24 +302,16 @@ export function RoutinesSheet({ open, onClose }: RoutinesSheetProps) {
               />
             </label>
 
-            <div className={styles.emojiPicker}>
-              {EMOJIS.map((emoji) => (
-                <button
-                  key={emoji}
-                  type="button"
-                  className={`${styles.emojiOption} ${
-                    icon === emoji ? styles.selected : ""
-                  }`}
-                  onClick={() => {
-                    haptics.select();
-                    setIcon(emoji);
-                  }}
-                  aria-label={emoji}
-                >
-                  {emoji}
-                </button>
-              ))}
-            </div>
+            {/* The shared picker, not a local list: this file held a third copy
+                of the same ten icons, so a routine could only ever be one of
+                them while habits got the full set. */}
+            <EmojiPicker
+              value={icon}
+              onChange={(next) => {
+                haptics.select();
+                setIcon(next);
+              }}
+            />
 
             <div className={styles.field}>
               <span>{t("routineDays")}</span>

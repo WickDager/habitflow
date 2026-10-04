@@ -1,0 +1,112 @@
+/**
+ * EmojiPicker chrome.
+ *
+ * The sheet frame around it (overlay, handle, actions, submit button) belongs
+ * to the parent sheet and stays in globals.css — this file only styles the
+ * picker, so both the create modal and the edit sheet get the same grid.
+ *
+ * Dark-only: the app has dropped light mode, so there are no light-specific
+ * rules here and none should be added. Everything reads from the shared
+ * tokens, which the Telegram theme maps in globals.css.
+ */
+
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--color-muted);
+}
+
+/*
+ * The one scroller, and the reason it is a max-height rather than a height or
+ * a vh value: this picker sits inside a bottom sheet that already scrolls
+ * (`max-height: 85dvh`). A fixed height would fight the sheet's own scrolling
+ * and strand the actions below it on a short screen; a cap lets the sheet keep
+ * whatever room is left. `overscroll-behavior: contain` stops a flick that
+ * reaches the end of the grid from scrolling the sheet behind it — without it
+ * the sheet jumps under the finger at the end of every scroll.
+ */
+.scroll {
+  max-height: 240px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  /* Keeps the scrollbar off the last column of buttons. */
+  padding-right: 2px;
+}
+
+.group + .group {
+  margin-top: var(--space-sm);
+}
+
+.groupTitle {
+  margin: 0 0 var(--space-xs);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+/*
+ * Row of the habit's current icon when it is not one of ours. Sits above the
+ * scroller, not inside it, so it stays visible while the user scrolls the set
+ * looking for a replacement — the whole point is that they can always see what
+ * the habit is set to now.
+ */
+.current {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-xs);
+}
+
+.currentLabel {
+  font-size: 0.8rem;
+  color: var(--color-muted);
+}
+
+/* auto-fill, so the grid reflows to the sheet width and every cell stays
+   tappable rather than squeezing below the 44px minimum. */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
+  gap: var(--space-xs);
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* 48px, not 44: matches the touch target the inline picker used before this
+     component existed, and clears the 44px minimum with room to spare. */
+  min-width: 48px;
+  min-height: 48px;
+  padding: 0;
+  font-size: 1.35rem;
+  line-height: 1;
+  background: var(--color-surface);
+  border: 2px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.option:active {
+  transform: scale(0.92);
+}
+
+/* Keyboard users get the same ring the rest of the app uses; :focus-visible
+   rather than :focus so a tap does not leave it behind. */
+.option:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.option.selected {
+  border-color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 20%, var(--color-surface));
+}

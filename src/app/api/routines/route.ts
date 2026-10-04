@@ -15,7 +15,9 @@ const WeekdaysSchema = z.array(z.number().int().min(0).max(6)).max(7);
 
 const RoutineInputSchema = z.object({
   name: z.string().min(1).max(50),
-  icon: z.string().emoji().max(2).nullish(),
+  // max(8) to match HabitSchema: Zod counts UTF-16 units, so a single emoji
+  // carrying a variation selector (🏋️ = 3 units) would be rejected here too.
+  icon: z.string().emoji().max(8).nullish(),
   /** 0=Sunday..6=Saturday. Empty/absent means every day (routines.days semantics). */
   days: WeekdaysSchema.optional(),
   /** Habit ids in display order; the array index becomes routine_items.sort_order. */

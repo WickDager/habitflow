@@ -11,7 +11,8 @@ const WeekdaysSchema = z.array(z.number().int().min(0).max(6)).max(7);
 
 const RoutinePatchSchema = z.object({
   name: z.string().min(1).max(50).optional(),
-  icon: z.string().emoji().max(2).nullish(),
+  // max(8) to match HabitSchema — see the note in src/app/api/routines/route.ts.
+  icon: z.string().emoji().max(8).nullish(),
   days: WeekdaysSchema.optional(),
   sort_order: z.number().int().min(0).optional(),
   /** When present the item list is replaced wholesale, in the given order. */

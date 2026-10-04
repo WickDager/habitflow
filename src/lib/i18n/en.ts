@@ -41,9 +41,9 @@ export const en = {
 
   // Bot messages
   botWelcome:
-    "Welcome to HabitFlow — your daily routine, simplified.\n\nSmall habits, big results. Track what matters in seconds, stay consistent, and watch your streaks grow.\n\nTap below to get started! 🚀",
+    "👋 <b>Welcome to HabitFlow</b>\n\nSmall habits, big results — track what matters in seconds, stay consistent, and watch your streaks grow.\n\n<b>What I can do</b>\n• Send your plan every morning\n• Nudge you if the day slips\n• Wrap up each evening\n\nTap below to get started 🚀",
   botOpenApp: "Open HabitFlow",
-  botReminderSettings: "Reminder settings:",
+  botReminderSettings: "⚙️ Reminder settings",
   botEnableReminders: "Enable reminders",
   botDisableReminders: "Disable reminders",
 
@@ -65,6 +65,14 @@ export const en = {
   noHabitsYet: "No habits yet. Tap + to create one.",
   cancel: "Cancel",
   habitNameLabel: "Habit name",
+  iconChoose: "Icon",
+  iconCurrent: "Current",
+  iconGroupMove: "Move",
+  iconGroupHealth: "Health",
+  iconGroupMind: "Mind",
+  iconGroupHome: "Home",
+  iconGroupWork: "Work",
+  iconGroupSocial: "Social",
   editHabit: "Edit habit",
   deleteHabit: "Delete habit",
   deleteHabitConfirm: "Delete this habit? Your check-in history will be preserved.",
@@ -84,6 +92,10 @@ export const en = {
   saved: "Saved",
   deleted: "Deleted",
   undo: "Undo",
+  markDone: "Mark done",
+  markUndone: "Mark undone",
+  rowActions: "Actions",
+  close: "Close",
   retry: "Retry",
   sessionExpired: "Your session expired. Reopen HabitFlow from the bot.",
   rateLimited: "Too many requests — try again in a minute.",
@@ -92,7 +104,6 @@ export const en = {
 
   // ── Settings / reminders ──
   settings: "Settings",
-  toggleTheme: "Toggle theme",
   reminders: "Reminders",
   reminderEnabledLabel: "Daily reminders",
   morningPlan: "Morning plan",
@@ -219,26 +230,38 @@ export const en = {
   partnerYourId: "Your ID: {{id}}",
 
   // ── Bot messages ──
+  // The digest bodies are assembled by `daySections()` in src/lib/notify.ts, so
+  // the section headers and the "+N more" line live there too, not in the copy.
   botHelp:
-    "Commands:\n/add <task> — add a task\n/today — today's plan\n/stats — your progress\n/settings — reminders",
-  botTodayTitle: "Today, {{date}}",
-  botNothingToday: "Nothing scheduled today. Enjoy it.",
+    "🤖 <b>HabitFlow bot</b>\n\n<code>/add</code> — add a task\n<code>/today</code> — today's plan\n<code>/stats</code> — your progress\n<code>/settings</code> — reminders\n\nForward me any message and I'll save it as a task.",
+  botTodayTitle: "📅 Today, {{date}}",
+  botNothingToday: "🎉 Nothing scheduled today. Enjoy it.",
   botDone: "Done",
   botLater: "Later",
   botSnoozed: "Snoozed for an hour",
   botSkipped: "Skipped for today",
-  botAdded: "Added: {{title}}",
-  botAddUsage: "Send /add followed by what you need to do.\nExample: /add pay rent tomorrow 9am",
-  botTaskDue: "⏰ Due now: {{title}}",
+  botAdded: "✅ Added to your tasks",
+  botAddedWhen: "📅 {{when}}",
+  botAddUsage:
+    "Add a task after the command:\n\n<code>/add pay rent tomorrow 9am</code>",
+  botTaskDue: "⏰ Due now\n\n{{title}}",
   botMoodLogged: "Mood logged — thanks!",
-  botMoodQuestion: "How did today go?",
-  botForwardedSaved: "Saved as a task.",
-  botMorningTitle: "Good morning, {{name}}",
-  botMorningBody: "Today: {{habits}} habits · {{tasks}} tasks",
-  botEveningTitle: "How did today go?",
-  botEveningBody: "{{done}} of {{total}} habits done today.",
-  botNothingLoggedYet: "Nothing logged yet today — {{count}} to go.",
-  botStreakLine: "Longest streak: {{count}} days",
+  botMoodQuestion: "How was your day?",
+  botForwardedSaved: "✅ Saved as a task.",
+  botMorningTitle: "☀️ Good morning, {{name}}",
+  botEveningTitle: "🌙 Evening check-in",
+  botEveningBody: "{{done}} of {{total}} habits done today",
+  botHabitsLeft: "HABITS · {{count}} to go",
+  botTasksDue: "TASKS · {{count}} due",
+  botMoreItems: "+{{count}} more",
+  botTapToCheck: "Tap a habit below to check it off",
+  botNothingLoggedYet: "👋 Nothing logged yet today",
+  botStatsTitle: "📊 Your progress",
+  botTotalCheckinsLine: "✅ {{count}} check-ins all time",
+  botStatusOn: "Status: ✅ On",
+  botStatusOff: "Status: ⬜ Off",
+  botDailyLimit: "Daily limit · {{count}} messages",
+  botStreakLine: "🔥 Best streak · {{count}} days",
   botMuteHint: "Turn these off any time with /settings",
 
   // ── Task empty states that teach ──

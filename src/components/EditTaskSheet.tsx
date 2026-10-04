@@ -9,6 +9,7 @@ import { useLanguage } from "@/lib/i18n";
 import { parseDateString, toDateString } from "@/lib/dates";
 import { useToast } from "@/components/Toast";
 import { TagPicker } from "./TagPicker";
+import { useEscapeToClose, useSheetDrag } from "./useSheetDrag";
 import type { Recurrence, Subtask, TagRow } from "@/lib/database.types";
 import styles from "./EditTaskSheet.module.css";
 
@@ -55,6 +56,13 @@ export function EditTaskSheet({ task, onClose }: EditTaskSheetProps) {
   const { t } = useLanguage();
   const { toast } = useToast();
   const { mutate } = useSWRConfig();
+  // No `open` prop: a task in hand is what "open" means and the sheet renders
+  // null without one.
+  const { sheetRef, dragStyle, handleProps } = useSheetDrag({
+    open: task !== null,
+    onClose,
+  });
+  useEscapeToClose(onClose, task !== null);
 
   const [title, setTitle] = useState(task?.title ?? "");
   const [dueDate, setDueDate] = useState(task?.due_date ?? "");
@@ -192,8 +200,14 @@ export function EditTaskSheet({ task, onClose }: EditTaskSheetProps) {
   return (
     <>
       <div className="sheet-overlay" onClick={onClose} aria-hidden="true" />
-      <div className="bottom-sheet" role="dialog" aria-modal="true">
-        <div className="sheet-handle" />
+      <div
+        className="bottom-sheet"
+        ref={sheetRef}
+        style={dragStyle}
+        role="dialog"
+        aria-modal="true"
+      >
+        <div className="sheet-handle" {...handleProps} />
 
         <div className="sheet-form">
           <h3 className="sheet-form-title">{t("editTask")}</h3>

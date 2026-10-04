@@ -1,57 +1,23 @@
 @import "tailwindcss";
 
-/* ── Theme: light (default / explicit) ── */
-:root,
-:root.light {
-  --tg-theme-bg-color: #ffffff;
-  --tg-theme-text-color: #222222;
-  --tg-theme-button-color: #007aff;
-  --tg-theme-button-text-color: #ffffff;
-  --tg-theme-secondary-bg-color: #f1f1f2;
-  --tg-theme-hint-color: #99999f;
-  --tg-theme-destructive-color: #ff3b30;
-  --tg-theme-success-color: #34c759;
-  --tg-theme-warning-color: #ff9f0a;
-
-  --color-bg: var(--tg-theme-bg-color);
-  --color-surface: var(--tg-theme-secondary-bg-color);
-  --color-text: var(--tg-theme-text-color);
-  --color-muted: var(--tg-theme-hint-color);
-  --color-primary: var(--tg-theme-button-color);
-  --color-primary-text: var(--tg-theme-button-text-color);
-  --color-border: color-mix(in srgb, var(--tg-theme-secondary-bg-color) 80%, transparent);
-
-  --color-mood-happy: var(--tg-theme-success-color);
-  --color-mood-neutral: var(--tg-theme-warning-color);
-  --color-mood-sad: var(--tg-theme-destructive-color);
-  --color-delete: var(--tg-theme-destructive-color);
-  --color-delete-bg: rgba(255, 59, 48, 0.1);
-
-  --space-xs: 4px;
-  --space-sm: 8px;
-  --space-md: 16px;
-  --space-lg: 24px;
-  --space-xl: 40px;
-
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 20px;
-  --radius-full: 9999px;
-
-  --font-body: system-ui, -apple-system, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
-  --font-mono: "SF Mono", "Fira Code", monospace;
-
-  color-scheme: light;
-}
-
-/* ── Theme: dark (explicit override) ── */
-:root.dark {
+/* ── Theme: dark (the only theme) ──
+   Dark-only by the owner's decision. Three previous mechanisms are gone: a
+   light default, a `.dark` override class, and a prefers-color-scheme fallback
+   — plus the header toggle, which never actually worked. TelegramProvider
+   wrote Telegram's own --tg-theme-* values as *inline* styles on <html>, and an
+   inline custom property beats any class-based rule, so toggling the class
+   changed nothing. Telegram theming is now ignored on purpose: the app looks
+   the same for everyone. */
+:root {
   --tg-theme-bg-color: #1c1c1e;
   --tg-theme-text-color: #ffffff;
   --tg-theme-button-color: #0a84ff;
   --tg-theme-button-text-color: #ffffff;
   --tg-theme-secondary-bg-color: #2c2c2e;
   --tg-theme-hint-color: #8e8e93;
+  --tg-theme-destructive-color: #ff453a;
+  --tg-theme-success-color: #30d158;
+  --tg-theme-warning-color: #ff9f0a;
 
   --color-bg: var(--tg-theme-bg-color);
   --color-surface: var(--tg-theme-secondary-bg-color);
@@ -67,35 +33,22 @@
   --color-delete: #ff453a;
   --color-delete-bg: rgba(255, 69, 58, 0.12);
 
+  /* These lived in the old light block; they are theme-independent. */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 40px;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-full: 9999px;
+
+  --font-body: system-ui, -apple-system, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  --font-mono: "SF Mono", "Fira Code", monospace;
+
   color-scheme: dark;
-}
-
-/* ── Auto dark if system prefers it and no light class ── */
-@media (prefers-color-scheme: dark) {
-  :root:not(.light):not(.dark) {
-    --tg-theme-bg-color: #1c1c1e;
-    --tg-theme-text-color: #ffffff;
-    --tg-theme-button-color: #0a84ff;
-    --tg-theme-button-text-color: #ffffff;
-    --tg-theme-secondary-bg-color: #2c2c2e;
-    --tg-theme-hint-color: #8e8e93;
-
-    --color-bg: var(--tg-theme-bg-color);
-    --color-surface: var(--tg-theme-secondary-bg-color);
-    --color-text: var(--tg-theme-text-color);
-    --color-muted: var(--tg-theme-hint-color);
-    --color-primary: var(--tg-theme-button-color);
-    --color-primary-text: var(--tg-theme-button-text-color);
-    --color-border: color-mix(in srgb, var(--tg-theme-secondary-bg-color) 80%, transparent);
-
-    --color-mood-happy: #30d158;
-    --color-mood-neutral: #ff9f0a;
-    --color-mood-sad: #ff453a;
-    --color-delete: #ff453a;
-    --color-delete-bg: rgba(255, 69, 58, 0.12);
-
-    color-scheme: dark;
-  }
 }
 
 /* ── Layering & bottom-chrome geometry ──
@@ -864,6 +817,23 @@ body {
   background: var(--color-muted);
   margin: 0 auto var(--space-md);
   opacity: 0.4;
+  /* This is the drag-to-dismiss grab target, and 36x5px is far too small to hit
+     with a mouse — which is a first-class pointer on Telegram Web, where a
+     "swipe" has to be performed by dragging. `position: relative` anchors the
+     ::before below, and `touch-action: none` is set inline by useSheetDrag. */
+  position: relative;
+}
+
+/* Expands the pointer target without changing the painted bar: the pseudo
+   element is part of its originating element for hit-testing, so a press
+   anywhere in this box starts a drag.
+   Deliberately grows upward and sideways only. Growing downward would overlap
+   the sheet's first control and swallow taps meant for it; above the handle
+   there is only the sheet's top padding, and a little of the scrim. */
+.sheet-handle::before {
+  content: "";
+  position: absolute;
+  inset: -18px -50px 0;
 }
 
 .sheet-options {
